@@ -1,0 +1,101 @@
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="stat-card bg-gradient-primary" id="orders-card">
+            <div class="stat-card-body">
+                <div class="stat-card-icon">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                <div class="stat-card-info">
+                    <h5 class="stat-card-title">أذونات التسليم</h5>
+                    <div class="stat-card-value" id="total-orders">{{ total_orders }}</div>
+                    <div class="stat-card-progress">
+                        <div class="progress">
+                            <div class="progress-bar" role="progressbar" style="width: {{ active_orders }}%" aria-valuenow="{{ active_orders }}" aria-valuemin="0" aria-valuemax="{{ total_orders }}"></div>
+                        </div>
+                        <div class="stat-card-subtitle"><span id="active-orders">{{ active_orders|default:0 }}</span> نشط من أصل {{ total_orders|default:0 }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="stat-card-footer">
+                <a href="{% url 'port:delivery_orders' %}" class="stat-card-action">
+                    عرض التفاصيل <i class="fas fa-arrow-left"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="stat-card bg-gradient-success" id="containers-card">
+            <div class="stat-card-body">
+                <div class="stat-card-icon">
+                    <i class="fas fa-box"></i>
+                </div>
+                <div class="stat-card-info">
+                    <h5 class="stat-card-title">الحاويات</h5>
+                    <div class="stat-card-value" id="total-containers">{{ containers_report.total }}</div>
+                    <div class="stat-card-progress">
+                        <div class="progress">
+                            <div class="progress-bar" role="progressbar" style="width: {{ containers_report.percent }}%" aria-valuenow="{{ containers_report.assigned }}" aria-valuemin="0" aria-valuemax="{{ containers_report.total }}"></div>
+                        </div>
+                        <div class="stat-card-subtitle"><span id="assigned-containers">{{ containers_report.assigned }}</span> مرتبط من أصل {{ containers_report.total }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="stat-card-footer">
+                <a href="{% url 'port:containers_list' %}" class="stat-card-action">
+                    عرض التفاصيل <i class="fas fa-arrow-left"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="stat-card bg-gradient-info" id="drivers-card">
+            <div class="stat-card-body">
+                <div class="stat-card-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="stat-card-info">
+                    <h5 class="stat-card-title">السائقين</h5>
+                    <div class="stat-card-value" id="drivers-count">{{ drivers_count }}</div>
+                    <div class="stat-card-progress">
+                        <div class="progress">
+                            <div class="progress-bar" role="progressbar" style="width: 100%" aria-valuenow="{{ drivers_count }}" aria-valuemin="0" aria-valuemax="{{ drivers_count }}"></div>
+                        </div>
+                        <div class="stat-card-subtitle">{{ drivers_count }} سائق نشط</div>
+                    </div>
+                </div>
+            </div>
+            <div class="stat-card-footer">
+                <a href="{% url 'port:drivers_list' %}" class="stat-card-action">
+                    عرض التفاصيل <i class="fas fa-arrow-left"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="stat-card bg-gradient-warning" id="trucks-card">
+            <div class="stat-card-body">
+                <div class="stat-card-icon">
+                    <i class="fas fa-truck"></i>
+                </div>
+                <div class="stat-card-info">
+                    <h5 class="stat-card-title">الشاحنات</h5>
+                    <div class="stat-card-value" id="total-trucks">{{ trucks_report.total }}</div>
+                    <div class="stat-card-progress">
+                        <div class="progress">
+                            <div class="progress-bar" role="progressbar" style="width: {{ trucks_report.percent }}%" aria-valuenow="{{ trucks_report.active }}" aria-valuemin="0" aria-valuemax="{{ trucks_report.total }}"></div>
+                        </div>
+                        <div class="stat-card-subtitle"><span id="active-trucks">{{ trucks_report.active }}</span> نشط من أصل {{ trucks_report.total }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="stat-card-footer">
+                <a href="{% url 'port:trucks_list' %}" class="stat-card-action">
+                    عرض التفاصيل <i class="fas fa-arrow-left"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</div> 

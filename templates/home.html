@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام إدارة المندوب - تسجيل الدخول</title>
+    <!-- Bootstrap RTL CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #1e88e5;
+            --secondary-color: #f5f5f5;
+            --accent-color: #ff9800;
+            --text-color: #333;
+            --light-text: #fff;
+        }
+        
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .login-container {
+            display: flex;
+            flex-direction: row-reverse;
+            min-height: 90vh;
+            align-items: stretch;
+            justify-content: center;
+            max-width: 1200px;
+            margin: 40px auto;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            overflow: hidden;
+            background-color: white;
+        }
+        
+        .login-form {
+            flex: 1;
+            padding: 3rem 2rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            min-width: 340px;
+            min-height: 100%;
+        }
+        
+        .login-header {
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        
+        .login-header h1 {
+            color: #1e88e5;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        
+        .login-header p {
+            color: #6c757d;
+        }
+        
+        .form-floating {
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+        
+        .form-control {
+            padding: 1rem 0.75rem;
+            border-radius: 8px;
+            border: 1px solid #ced4da;
+            transition: all 0.3s;
+        }
+        
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.25rem rgba(30, 136, 229, 0.25);
+        }
+        
+        .form-floating label {
+            padding: 1rem 0.75rem;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary:hover {
+            background-color: #1976d2;
+            border-color: #1976d2;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .login-footer {
+            text-align: center;
+            margin-top: 2rem;
+        }
+        
+        .login-footer a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .login-footer a:hover {
+            color: #1976d2;
+            text-decoration: underline;
+        }
+        
+        .social-login {
+            display: flex;
+            justify-content: center;
+            margin: 1.5rem 0;
+        }
+        
+        .social-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin: 0 0.5rem;
+            color: white;
+            transition: all 0.3s;
+        }
+        
+        .social-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .google {
+            background-color: #DB4437;
+        }
+        
+        .facebook {
+            background-color: #4267B2;
+        }
+        
+        .twitter {
+            background-color: #1DA1F2;
+        }
+        
+        .remember-me {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-check-input:checked {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .forgot-password {
+            color: #6c757d;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+        
+        .forgot-password:hover {
+            color: var(--primary-color);
+        }
+        
+        .login-image {
+            flex: 1;
+            min-height: 400px;
+            background-image: url('https://images.unsplash.com/photo-1494412574643-ff11b0a5c1c3?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80');
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        .login-image-content {
+            position: relative;
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            z-index: 2;
+        }
+        
+        .login-image::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.4);
+            z-index: 1;
+        }
+        
+        @media (max-width: 992px) {
+            .login-container { flex-direction: column !important; min-height: unset; margin: 20px 0; }
+            .login-image { min-height: 200px; }
+            .login-form { padding: 2rem 1.5rem; }
+        }
+        
+        @media (max-width: 576px) {
+            .login-form { padding: 1.2rem 0.5rem; }
+            .login-header h1 { font-size: 1.3rem; }
+        }
+        
+        /* تحميل خط Tajawal */
+        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap');
+    </style>
+</head>
+<body>
+    <div class="container login-container" style="display:flex;flex-direction:row-reverse;max-width:1200px;box-shadow:0 15px 30px rgba(0,0,0,0.1);border-radius:15px;overflow:hidden;background-color:white;">
+        <div class="login-form" style="flex:1;padding:3rem;display:flex;flex-direction:column;justify-content:center;min-width:340px;">
+            <div class="login-header" style="margin-bottom:2rem;text-align:center;">
+                <h1 style="color:#1e88e5;font-weight:700;margin-bottom:0.5rem;">تسجيل الدخول</h1>
+                <p style="color:#6c757d;">أدخل بيانات حسابك للوصول إلى لوحة التحكم</p>
+            </div>
+            <form method="post" action="{% url 'login' %}">
+                {% csrf_token %}
+                {% if messages %}
+                <div class="alert alert-danger mb-3">
+                    {% for message in messages %}{{ message }}{% endfor %}
+                </div>
+                {% endif %}
+                <div class="form-floating mb-3">
+                    <input type="text" class="form-control" id="username" name="username" placeholder="اسم المستخدم" required>
+                    <label for="username">اسم المستخدم</label>
+                </div>
+                <div class="form-floating mb-3">
+                    <input type="password" class="form-control" id="password" name="password" placeholder="كلمة المرور" required>
+                    <label for="password">كلمة المرور</label>
+                </div>
+                <div class="remember-me">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="remember" name="remember">
+                        <label class="form-check-label" for="remember">تذكرني</label>
+                    </div>
+                    <a href="#" class="forgot-password">نسيت كلمة المرور؟</a>
+                </div>
+                <button type="submit" class="btn btn-primary w-100">تسجيل الدخول <i class="fas fa-sign-in-alt me-2"></i></button>
+                <div class="social-login">
+                    <a href="#" class="social-btn google"><i class="fab fa-google"></i></a>
+                    <a href="#" class="social-btn facebook"><i class="fab fa-facebook-f"></i></a>
+                    <a href="#" class="social-btn twitter"><i class="fab fa-twitter"></i></a>
+                </div>
+            </form>
+            <div class="disclaimer-box mt-4 mx-auto" style="background:#fff;border-radius:12px;padding:22px 28px;max-width:540px;box-shadow:0 2px 12px rgba(30,136,229,0.09);border:2px solid #eab308;">
+                <div style="display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:14px;">
+                    <i class="fas fa-exclamation-triangle" style="color:#eab308;font-size:2rem;"></i>
+                    <span style="font-weight:900;font-size:1.25rem;color:#b91c1c;letter-spacing:0.5px;">إخلاء المسؤولية</span>
+                </div>
+                <ol style="text-align:right;direction:rtl;font-size:1.13rem;color:#333;line-height:2.1;margin-bottom:0;padding-right:22px;">
+                    <li>النظام مخصص فقط للمندوب لإدارة معلوماته وحفظها بشكل شخصي.</li>
+                    <li>النظام لا يتبع أو يمثل أي جهة رسمية أو خاصة.</li>
+                    <li>جميع البيانات المدخلة هي مسؤولية المستخدم وحده.</li>
+                    <li>لا يتحمل مطور النظام أو أي طرف آخر أي مسؤولية قانونية أو إدارية أو مالية عن استخدام النظام أو عن أي نتائج تترتب على ذلك.</li>
+                    <li>استخدام النظام هو لأغراض الإدارة الشخصية فقط، وأي استخدام آخر يقع تحت مسؤولية المستخدم وحده.</li>
+                </ol>
+            </div>
+        </div>
+        <div class="login-image" style="flex:1;min-height:400px;background-image:url('https://images.unsplash.com/photo-1494412574643-ff11b0a5c1c3?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80');background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;position:relative;">
+            <div class="login-image-content" style="position:relative;color:white;text-align:center;padding:2rem;z-index:2;">
+                <h2>مرحباً بك في نظام إدارة المندوب</h2>
+                <p>النظام الأمثل لإدارة عمليات المندوب والشحن بكفاءة عالية</p>
+            </div>
+            <div style="position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);"></div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 

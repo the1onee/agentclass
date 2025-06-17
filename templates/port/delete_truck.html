@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow-lg rounded-4 border-0">
+        <div class="card-header bg-danger text-white py-3 rounded-top-4">
+            <h3 class="mb-0 fw-bold">حذف الشاحنة</h3>
+        </div>
+        <div class="card-body p-4">
+            <div class="alert alert-danger rounded-3" role="alert">
+                <h4 class="alert-heading">تحذير!</h4>
+                <p>هل أنت متأكد من رغبتك في حذف الشاحنة رقم <strong class="text-decoration-underline">{{ truck.plate_number }}</strong>؟</p>
+                <hr>
+                <p class="mb-0">هذا الإجراء لا يمكن التراجع عنه.</p>
+            </div>
+            <form method="post">
+                {% csrf_token %}
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                    <button type="submit" class="btn btn-danger px-4 py-2 rounded-pill fw-bold">نعم، احذف</button>
+                    <a href="{% url 'port:trucks_list' %}" class="btn btn-outline-secondary px-4 py-2 rounded-pill">إلغاء</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    .card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+    .btn-danger {
+        transition: all 0.3s ease;
+    }
+    .btn-danger:hover {
+        transform: scale(1.05);
+        box-shadow: 0 0.5rem 1rem rgba(220, 53, 69, 0.3);
+    }
+</style>
+{% endblock %} 

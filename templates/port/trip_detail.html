@@ -1,0 +1,193 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-2">
+            <div class="list-group">
+                <a href="{% url 'port:home' %}" class="list-group-item list-group-item-action">
+                    لوحة التحكم
+                </a>
+                <a href="{% url 'port:delivery_orders' %}" class="list-group-item list-group-item-action">
+                    أوامر التسليم
+                </a>
+                <a href="{% url 'port:trip_list' %}" class="list-group-item list-group-item-action active">
+                    الرحلات
+                </a>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-md-10">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">تفاصيل الرحلة</h5>
+                    <div>
+                        <!-- أزرار الطباعة والتصدير -->
+                        <div class="btn-group me-2">
+                            
+                            <a href="{% url 'port:export_trip_excel' trip.id %}" class="btn btn-success btn-sm">
+                                <i class="fas fa-file-excel me-1"></i> تصدير Excel
+                            </a>
+                            <button type="button" id="printTripDetails" class="btn btn-secondary btn-sm">
+                                <i class="fas fa-print me-1"></i> طباعة
+                            </button>
+                        </div>
+                        <a href="{% url 'port:edit_trip' trip.id %}" class="btn btn-primary btn-sm">تعديل الرحلة</a>
+                        <a href="{% url 'port:trip_list' %}" class="btn btn-secondary btn-sm">عودة للقائمة</a>
+                    </div>
+                </div>
+
+                <div class="card-body" id="tripDetailsContent">
+                    <!-- معلومات الرحلة الأساسية -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">معلومات الرحلة</h6>
+                                </div>
+                                <div class="card-body">
+                                    <table class="table table-borderless">
+                                        <tr>
+                                            <th>رقم إذن التسليم:</th>
+                                            <td>{{ trip.delivery_order.order_number }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>تاريخ البداية:</th>
+                                            <td>{{ trip.start_time|date:"Y-m-d H:i" }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>تاريخ النهاية:</th>
+                                            <td>{{ trip.end_time|date:"Y-m-d H:i" }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>الحالة:</th>
+                                            <td>
+                                                <span class="badge {% if trip.status == 'pending' %}bg-warning
+                                                    {% elif trip.status == 'active' %}bg-success
+                                                    {% elif trip.status == 'completed' %}bg-info
+                                                    {% else %}bg-danger{% endif %}">
+                                                    {{ trip.get_status_display }}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">معلومات إذن التسليم</h6>
+                                </div>
+                                <div class="card-body">
+                                    <table class="table table-borderless">
+                                        <tr>
+                                            <th>تاريخ الإصدار:</th>
+                                            <td>{{ trip.delivery_order.issue_date|date:"Y-m-d" }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>الملاحظات:</th>
+                                            <td>{{ trip.delivery_order.notes|default:"لا توجد ملاحظات" }}</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- جدول الحاويات -->
+                    <div class="card mt-4">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">الحاويات المرتبطة</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-striped" id="containersTable">
+                                    <thead>
+                                        <tr>
+                                            <th>رقم الحاوية</th>
+                                            <th>النوع</th>
+                                            <th>الوزن</th>
+                                            <th>السائق</th>
+                                            <th>الشاحنة</th>
+                                            <th>الحالة</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for container in trip.containers.all %}
+                                        <tr>
+                                            <td>{{ container.container_number }}</td>
+                                            <td>{{ container.get_container_type_display }}</td>
+                                            <td>{{ container.weight }} طن</td>
+                                            <td>{{ container.driver.name|default:"غير محدد" }}</td>
+                                            <td>{{ container.truck.plate_number|default:"غير محدد" }}</td>
+                                            <td>
+                                                <span class="badge 
+                                                    {% if container.status == 'EMPTY' %}bg-secondary
+                                                    {% elif container.status == 'LOADED' %}bg-primary
+                                                    {% elif container.status == 'GENERAL_GOODS' %}bg-success
+                                                    {% else %}bg-info{% endif %}">
+                                                    {{ container.get_status_display }}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        {% empty %}
+                                        <tr>
+                                            <td colspan="6" class="text-center">لا توجد حاويات مرتبطة</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // طباعة تفاصيل الرحلة
+        document.getElementById('printTripDetails').addEventListener('click', function() {
+            // إنشاء نافذة جديدة للطباعة
+            var printWindow = window.open('', '', 'height=600,width=800');
+            
+            // الحصول على محتوى تفاصيل الرحلة
+            var tripContent = document.getElementById('tripDetailsContent').innerHTML;
+            
+            // كتابة محتوى الرحلة في النافذة الجديدة
+            printWindow.document.write('<html><head><title>تفاصيل الرحلة</title>');
+            printWindow.document.write('<style>');
+            printWindow.document.write('body { font-family: Arial, sans-serif; direction: rtl; }');
+            printWindow.document.write('table { width: 100%; border-collapse: collapse; }');
+            printWindow.document.write('th, td { border: 1px solid #000; padding: 8px; text-align: right; }');
+            printWindow.document.write('th { background-color: #f2f2f2; }');
+            printWindow.document.write('.card { border: 1px solid #ddd; margin-bottom: 20px; }');
+            printWindow.document.write('.card-header { background-color: #f8f9fa; padding: 10px; font-weight: bold; }');
+            printWindow.document.write('.card-body { padding: 15px; }');
+            printWindow.document.write('.badge { padding: 5px 10px; border-radius: 4px; color: white; }');
+            printWindow.document.write('.bg-warning { background-color: #ffc107; }');
+            printWindow.document.write('.bg-success { background-color: #28a745; }');
+            printWindow.document.write('.bg-info { background-color: #17a2b8; }');
+            printWindow.document.write('.bg-danger { background-color: #dc3545; }');
+            printWindow.document.write('.bg-secondary { background-color: #6c757d; }');
+            printWindow.document.write('.bg-primary { background-color: #007bff; }');
+            printWindow.document.write('</style>');
+            printWindow.document.write('</head><body>');
+            printWindow.document.write('<h1 style="text-align: center;">تفاصيل الرحلة</h1>');
+            printWindow.document.write(tripContent);
+            printWindow.document.write('</body></html>');
+            
+            // إغلاق النافذة بعد الطباعة
+            printWindow.document.close();
+            printWindow.print();
+        });
+    });
+</script>
+{% endblock %} 

@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}تعديل الشاحنة{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow-lg rounded-4 border-0">
+        <div class="card-header bg-gradient-primary text-white py-3 rounded-top-4">
+            <h3 class="mb-0 fw-bold">تعديل الشاحنة <span class="badge bg-light text-dark">{{ truck.plate_number }}</span></h3>
+        </div>
+        <div class="card-body p-4">
+            {% if form.errors %}
+            <div class="alert alert-danger">
+                <ul class="mb-0">
+                    {% for field in form %}
+                        {% for error in field.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <form method="post" class="needs-validation" novalidate>
+                {% csrf_token %}
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                            {{ form.plate_number }}
+                            <label for="{{ form.plate_number.id_for_label }}">رقم اللوحة</label>
+                            {% if form.plate_number.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.plate_number.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                            {{ form.governorate }}
+                            <label for="id_governorate" class="form-label">المحافظة</label>
+                            <div class="invalid-feedback">يرجى اختيار المحافظة</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <div class="form-floating">
+                            {{ form.truck_type }}
+                            <label for="id_truck_type" class="form-label">نوع الشاحنة</label>
+                            <div class="invalid-feedback">يرجى اختيار نوع الشاحنة</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-check form-switch d-flex align-items-center h-100">
+                            <input class="form-check-input" type="checkbox" role="switch" id="id_is_active" name="is_active" style="transform: scale(1.5);" {% if form.is_active.value %}checked{% endif %}>
+                            <label class="form-check-label ms-3" for="id_is_active">حالة الشاحنة</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                    <button type="submit" class="btn btn-primary px-4 py-2 rounded-pill fw-bold">
+                        <i class="fas fa-save me-2"></i>حفظ التعديلات
+                    </button>
+                    <a href="{% url 'port:trucks_list' %}" class="btn btn-outline-secondary px-4 py-2 rounded-pill">
+                        <i class="fas fa-times me-2"></i>إلغاء
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    .card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+    .form-control {
+        transition: all 0.3s ease;
+        border: 1px solid #dee2e6;
+    }
+    .form-control:focus {
+        border-color: #86b7fe;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        transform: scale(1.02);
+    }
+    .bg-gradient-primary {
+        background: linear-gradient(45deg, #0d6efd, #0b5ed7);
+    }
+    .btn-primary {
+        transition: all 0.3s ease;
+    }
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0.5rem 1rem rgba(13, 110, 253, 0.3);
+    }
+</style>
+
+<script>
+    // Example starter JavaScript for disabling form submissions if there are invalid fields
+    (() => {
+        'use strict'
+        // Fetch all the forms we want to apply custom Bootstrap validation styles to
+        const forms = document.querySelectorAll('.needs-validation')
+        // Loop over them and prevent submission
+        Array.from(forms).forEach(form => {
+            form.addEventListener('submit', event => {
+                if (!form.checkValidity()) {
+                    event.preventDefault()
+                    event.stopPropagation()
+                }
+                form.classList.add('was-validated')
+            }, false)
+        })
+    })()
+</script>
+{% endblock %} 

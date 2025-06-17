@@ -1,0 +1,316 @@
+{% extends 'base.html' %}
+
+{% block title %}إدخال البيانات{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex align-items-center">
+            <h4 class="mb-0">أوامر التسليم</h4>
+            <span class="badge bg-primary ms-2">{{ orders_count }}</span>
+        </div>
+        <div class="d-flex gap-2">
+            <div class="input-group" style="width: 300px;">
+                <input type="text" class="form-control" placeholder="بحث...">
+                <button class="btn btn-outline-secondary">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+            <button class="btn btn-outline-secondary">
+                <i class="fas fa-filter"></i>
+            </button>
+            <a href="{% url 'port:add_item' 'order' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> إضافة أمر جديد
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Table -->
+    <div class="card">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0" id="fitmentTable">
+                <thead>
+                    <tr>
+                        <th style="width: 40px">
+                            <input type="checkbox" class="form-check-input">
+                        </th>
+                        <th>رقم الإذن</th>
+                        <th>تاريخ الإصدار</th>
+                        <th>الحالة</th>
+                        <th>عدد الحاويات</th>
+                        <th>السائق</th>
+                        <th>الشاحنة</th>
+                        <th style="width: 120px">الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                    <tr class="expandable-row">
+                        <td>
+                            <input type="checkbox" class="form-check-input">
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-chevron-right expand-icon me-2"></i>
+                                <span>{{ order.order_number }}</span>
+                            </div>
+                        </td>
+                        <td>{{ order.issue_date|date:"Y-m-d" }}</td>
+                        <td>
+                            <span class="status-badge {% if order.status == 'COMPLETED' %}status-success
+                                                    {% elif order.status == 'PENDING' %}status-warning
+                                                    {% else %}status-info{% endif %}">
+                                {{ order.get_status_display }}
+                            </span>
+                        </td>
+                        <td>{{ order.containers.count }}</td>
+                        <td>{{ order.driver.name|default:"غير محدد" }}</td>
+                        <td>{{ order.truck.plate_number|default:"غير محدد" }}</td>
+                        <td>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-sm btn-icon btn-light view-containers" 
+                                        data-order-id="{{ order.id }}">
+                                    <i class="fas fa-box"></i>
+                                </button>
+                                <a href="{% url 'port:edit_item' 'order' order.id %}" 
+                                   class="btn btn-sm btn-icon btn-light">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button class="btn btn-sm btn-icon btn-light delete-btn"
+                                        data-item-type="order" 
+                                        data-item-id="{{ order.id }}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="details-row d-none">
+                        <td colspan="8">
+                            <div class="details-content">
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <h6>تفاصيل الحاويات</h6>
+                                            <button class="btn btn-sm btn-primary add-container-row">
+                                                <i class="fas fa-plus"></i> إضافة حاوية
+                                            </button>
+                                        </div>
+                                        <div class="table-responsive">
+                                            <table class="table table-bordered table-sm containers-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>رقم الحاوية</th>
+                                                        <th>النوع</th>
+                                                        <th>الوزن (طن)</th>
+                                                        <th style="width: 100px">الإجراءات</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody class="containers-list">
+                                                    <!-- سيتم تعبئة هذا الجزء بواسطة JavaScript -->
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 mt-3">
+                                        <h6>ملاحظات</h6>
+                                        <textarea class="form-control" rows="2">{{ order.notes|default:"" }}</textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-4">
+                            لا توجد أوامر تسليم
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- تعديل Modal الحاويات -->
+<div class="modal fade" id="containersModal" tabindex="-1">
+    <div class="modal-dialog modal-xl"> <!-- تغيير الحجم إلى xl -->
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">تفاصيل الحاويات</h5>
+                <div class="ms-auto">
+                    <button class="btn btn-sm btn-primary add-container-modal">
+                        <i class="fas fa-plus"></i> إضافة حاوية
+                    </button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+            </div>
+            <div class="modal-body p-0"> <!-- إزالة padding -->
+                <div class="table-responsive">
+                    <table class="table table-bordered editable-table mb-0" id="containersTable">
+                        <thead>
+                            <tr>
+                                <th style="width: 40px">#</th>
+                                <th>رقم الحاوية</th>
+                                <th>النوع</th>
+                                <th>الوزن (طن)</th>
+                                <th style="width: 100px">الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                <button type="button" class="btn btn-primary save-all-changes">حفظ التغييرات</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.card {
+    border-radius: 8px;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.table {
+    margin: 0;
+}
+
+.table th {
+    background-color: #F9F9FA;
+    font-weight: 500;
+    color: #6C6C6C;
+    border-bottom: 1px solid #E5E7EB;
+    padding: 1rem;
+}
+
+.table td {
+    vertical-align: middle;
+    border-bottom: 1px solid #E5E7EB;
+    padding: 1rem;
+}
+
+.expandable-row {
+    cursor: pointer;
+}
+
+.expand-icon {
+    transition: transform 0.2s;
+}
+
+.expandable-row.expanded .expand-icon {
+    transform: rotate(90deg);
+}
+
+.details-row {
+    background-color: #F9F9FA;
+}
+
+.details-content {
+    padding: 1.5rem;
+    border-top: 1px solid #E5E7EB;
+}
+
+.status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.status-success {
+    background-color: #DEF7EC;
+    color: #03543F;
+}
+
+.status-warning {
+    background-color: #FEF3C7;
+    color: #92400E;
+}
+
+.status-info {
+    background-color: #E1EFFE;
+    color: #1E429F;
+}
+
+.btn-icon {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+}
+
+.btn-light {
+    background-color: #F9F9FA;
+    border: 1px solid #E5E7EB;
+}
+
+.btn-light:hover {
+    background-color: #E5E7EB;
+}
+
+.form-control {
+    border-radius: 6px;
+    border: 1px solid #E5E7EB;
+    padding: 0.5rem 0.75rem;
+}
+
+.form-control:focus {
+    border-color: #A1C2F8;
+    box-shadow: 0 0 0 3px rgba(161, 194, 248, 0.2);
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const table = document.getElementById('fitmentTable');
+    
+    table.addEventListener('click', function(e) {
+        const row = e.target.closest('.expandable-row');
+        if (!row) return;
+        
+        row.classList.toggle('expanded');
+        const detailsRow = row.nextElementSibling;
+        detailsRow.classList.toggle('d-none');
+        
+        if (!detailsRow.classList.contains('d-none')) {
+            const orderId = row.querySelector('.view-containers').dataset.orderId;
+            loadContainers(orderId, detailsRow.querySelector('.containers-list'));
+        }
+    });
+});
+
+function loadContainers(orderId, containersList) {
+    fetch(`/port/delivery-orders/${orderId}/`)
+        .then(response => response.json())
+        .then(data => {
+            containersList.innerHTML = '';
+            data.containers.forEach(container => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${container.container_number}</td>
+                    <td>${container.container_type}</td>
+                    <td>${container.weight} طن</td>
+                `;
+                containersList.appendChild(row);
+            });
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            containersList.innerHTML = '<tr><td colspan="3" class="text-center">حدث خطأ في تحميل البيانات</td></tr>';
+        });
+}
+</script>
+{% endblock %} 

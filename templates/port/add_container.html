@@ -1,0 +1,210 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-lg border-0 animate__animated animate__fadeIn">
+                <div class="card-header bg-gradient-primary text-white py-4">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-box-open fa-2x me-3 animate__animated animate__bounceIn"></i>
+                        <h3 class="mb-0 animate__animated animate__fadeInRight">{{ title }}</h3>
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        <div class="row g-4">
+                            {% for field in form %}
+                            <div class="col-md-6">
+                                <div class="form-group position-relative">
+                                    <label class="form-label fw-bold mb-2 animate__animated animate__fadeIn">
+                                        {{ field.label }}
+                                        {% if field.field.required %}
+                                            <span class="text-danger">*</span>
+                                        {% endif %}
+                                    </label>
+                                    <div class="input-group has-validation">
+                                        {% if field.name == 'container_number' %}
+                                            <span class="input-group-text bg-light">
+                                                <i class="fas fa-hashtag"></i>
+                                            </span>
+                                        {% elif field.name == 'container_type' %}
+                                            <span class="input-group-text bg-light">
+                                                <i class="fas fa-truck-loading"></i>
+                                            </span>
+                                        {% elif field.name == 'weight' %}
+                                            <span class="input-group-text bg-light">
+                                                <i class="fas fa-weight"></i>
+                                            </span>
+                                        {% endif %}
+                                        {{ field|add_class:"form-control form-control-lg" }}
+                                    </div>
+                                    {% if field.errors %}
+                                        {% for error in field.errors %}
+                                            <div class="invalid-feedback d-block animate__animated animate__shakeX">
+                                                <i class="fas fa-exclamation-circle me-1"></i>
+                                                {{ error }}
+                                            </div>
+                                        {% endfor %}
+                                    {% endif %}
+                                    {% if field.help_text %}
+                                        <small class="form-text text-muted mt-1">
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            {{ field.help_text }}
+                                        </small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="text-center mt-5">
+                            <button type="submit" class="btn btn-primary btn-lg px-5 me-3 save-btn">
+                                <i class="fas fa-save me-2"></i>حفظ
+                                <span class="spinner-border spinner-border-sm d-none" role="status"></span>
+                            </button>
+                            <a href="{% url 'port:edit_item' 'order' order.id %}" 
+                               class="btn btn-outline-secondary btn-lg px-5">
+                                <i class="fas fa-times me-2"></i>إلغاء
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    :root {
+        --primary-gradient: linear-gradient(45deg, #1e88e5, #1976d2);
+        --primary-hover: linear-gradient(45deg, #1976d2, #1565c0);
+        --transition-speed: 0.3s;
+    }
+    
+    .card {
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        transition: transform var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
+    }
+    
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 1rem 2rem rgba(0, 0, 0, 0.2);
+    }
+    
+    .bg-gradient-primary {
+        background: var(--primary-gradient);
+    }
+    
+    .form-control {
+        padding: 0.75rem 1rem;
+        border: 2px solid #e0e0e0;
+        border-radius: 10px;
+        transition: all var(--transition-speed) ease;
+        font-size: 1rem;
+    }
+    
+    .form-control:focus {
+        border-color: #1e88e5;
+        box-shadow: 0 0 0 0.2rem rgba(30, 136, 229, 0.25);
+    }
+    
+    .input-group-text {
+        border: 2px solid #e0e0e0;
+        border-right: none;
+        background-color: #f8f9fa;
+        color: #1e88e5;
+        padding: 0.75rem 1rem;
+        border-radius: 10px 0 0 10px;
+        transition: all var(--transition-speed) ease;
+    }
+    
+    .btn {
+        border-radius: 10px;
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        transition: all var(--transition-speed) ease;
+    }
+    
+    .btn-primary {
+        background: var(--primary-gradient);
+        border: none;
+    }
+    
+    .btn-primary:hover {
+        background: var(--primary-hover);
+        transform: translateY(-2px);
+    }
+    
+    .btn-outline-secondary {
+        border: 2px solid #6c757d;
+    }
+    
+    .btn-outline-secondary:hover {
+        background-color: #6c757d;
+        color: #fff;
+        transform: translateY(-2px);
+    }
+    
+    @media (max-width: 768px) {
+        .card {
+            margin: 0 1rem;
+        }
+        
+        .btn-lg {
+            width: 100%;
+            margin-bottom: 1rem;
+        }
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    const saveBtn = document.querySelector('.save-btn');
+    const spinner = saveBtn.querySelector('.spinner-border');
+    
+    // Add focus effects
+    const formGroups = document.querySelectorAll('.form-group');
+    formGroups.forEach(group => {
+        const input = group.querySelector('.form-control');
+        input.addEventListener('focus', () => {
+            group.classList.add('focused');
+            group.querySelector('.input-group-text').style.backgroundColor = '#e3f2fd';
+        });
+        input.addEventListener('blur', () => {
+            group.classList.remove('focused');
+            group.querySelector('.input-group-text').style.backgroundColor = '#f8f9fa';
+        });
+    });
+    
+    form.addEventListener('submit', function(e) {
+        if (saveBtn.disabled) {
+            e.preventDefault();
+            return;
+        }
+
+        if (!form.checkValidity()) {
+            e.preventDefault();
+            e.stopPropagation();
+        } else {
+            saveBtn.disabled = true;
+            spinner.classList.remove('d-none');
+            saveBtn.querySelector('i').classList.add('d-none');
+            return true;
+        }
+        
+        form.classList.add('was-validated');
+    });
+});
+</script>
+
+{% endblock %} 

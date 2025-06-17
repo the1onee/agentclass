@@ -1,0 +1,435 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}عنوان الصفحة{% endblock %}</title>
+    
+    <!-- Bootstrap RTL -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.rtl.min.css">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        
+        .container-fluid {
+            max-width: 1600px;
+        }
+
+        /* RTL Fixes */
+        .me-2 {
+            margin-left: 0.5rem !important;
+            margin-right: 0 !important;
+        }
+
+        .ms-2 {
+            margin-right: 0.5rem !important;
+            margin-left: 0 !important;
+        }
+
+        /* تنسيقات لوحة التحكم */
+        .dashboard-container {
+            background-color: #f8f9fa;
+            min-height: 100vh;
+        }
+
+        .dashboard-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 0;
+        }
+
+        .top-nav-bar {
+            background-color: #fff;
+            padding: 15px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        /* تنسيقات الشريط الجانبي */
+        .sidebar {
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            padding: 20px 0;
+            height: calc(100vh - 100px);
+            position: sticky;
+            top: 20px;
+        }
+
+        .user-profile {
+            padding: 0 15px;
+        }
+
+        .avatar-circle {
+            width: 80px;
+            height: 80px;
+            background-color: #6366f1;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+        }
+
+        .initials {
+            font-size: 32px;
+            color: white;
+            font-weight: bold;
+        }
+
+        .nav-menu {
+            margin-top: 20px;
+        }
+
+        .nav-link {
+            padding: 12px 20px;
+            color: #495057;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s;
+        }
+
+        .nav-link i {
+            margin-left: 10px;
+            font-size: 18px;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            background-color: #f0f0ff;
+            color: #6366f1;
+            border-right: 3px solid #6366f1;
+        }
+
+        /* تنسيقات البطاقات الإحصائية */
+        .stat-card {
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+            color: white;
+            transition: transform 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-card-body {
+            padding: 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        .stat-card-icon {
+            font-size: 36px;
+            margin-left: 15px;
+            background-color: rgba(255,255,255,0.2);
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .stat-card-info {
+            flex: 1;
+        }
+
+        .stat-card-title {
+            font-size: 16px;
+            margin-bottom: 5px;
+            opacity: 0.9;
+        }
+
+        .stat-card-value {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .stat-card-progress {
+            margin-top: 10px;
+        }
+
+        .progress {
+            height: 8px;
+            background-color: rgba(255,255,255,0.2);
+        }
+
+        .progress-bar {
+            background-color: rgba(255,255,255,0.8);
+        }
+
+        .stat-card-subtitle {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+
+        .stat-card-footer {
+            padding: 10px 20px;
+            background-color: rgba(0,0,0,0.1);
+        }
+
+        .stat-card-action {
+            color: white;
+            text-decoration: none;
+            font-size: 14px;
+            display: block;
+            text-align: left;
+        }
+
+        .stat-card-action:hover {
+            color: rgba(255,255,255,0.8);
+        }
+
+        /* تنسيقات الإجراءات السريعة */
+        .quick-actions-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .quick-action-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+            border-radius: 10px;
+            background-color: #f8f9fa;
+            color: #495057;
+            text-decoration: none;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .quick-action-btn:hover {
+            background-color: #6366f1;
+            color: white;
+            transform: translateY(-3px);
+        }
+
+        .quick-action-icon {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        /* تنسيقات حالة النظام */
+        .system-status {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-left: 5px;
+        }
+
+        .status-indicator.online {
+            background-color: #10b981;
+        }
+
+        .status-indicator.offline {
+            background-color: #ef4444;
+        }
+
+        /* تنسيقات عامة */
+        .dashboard-card {
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        .dashboard-card .card-header {
+            background-color: #fff;
+            border-bottom: 1px solid #e9ecef;
+            padding: 15px 20px;
+        }
+
+        .dashboard-card .card-body {
+            padding: 20px;
+        }
+
+        /* تنسيقات الجدول */
+        .recent-trips-table th {
+            font-weight: 600;
+            background-color: #f8f9fa;
+        }
+
+        .recent-trips-table td, .recent-trips-table th {
+            padding: 12px 15px;
+            vertical-align: middle;
+        }
+
+        /* تأثير التحميل */
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .rotating {
+            animation: rotate 1s linear infinite;
+        }
+
+        /* تنسيقات التاريخ والوقت */
+        .date-time-bar {
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .current-date, .current-time {
+            font-size: 16px;
+            color: #495057;
+        }
+
+        .current-date i, .current-time i {
+            color: #6366f1;
+            margin-left: 5px;
+        }
+
+        /* تدرجات الألوان */
+        .bg-gradient-primary {
+            background: linear-gradient(45deg, #6366f1, #818cf8);
+        }
+
+        .bg-gradient-success {
+            background: linear-gradient(45deg, #10b981, #34d399);
+        }
+
+        .bg-gradient-info {
+            background: linear-gradient(45deg, #0ea5e9, #38bdf8);
+        }
+
+        .bg-gradient-warning {
+            background: linear-gradient(45deg, #f59e0b, #fbbf24);
+        }
+
+        .bg-gradient-danger {
+            background: linear-gradient(45deg, #ef4444, #f87171);
+        }
+
+        .navbar.bg-gradient-primary, .navbar.bg-gradient-primary .navbar-brand, .navbar.bg-gradient-primary .nav-link, .navbar.bg-gradient-primary .nav-link:visited, .navbar.bg-gradient-primary .nav-link:active {
+            color: #fff !important;
+        }
+        .navbar.bg-gradient-primary .nav-link:hover, .navbar.bg-gradient-primary .nav-link.active {
+            color: #fbbf24 !important;
+        }
+    </style>
+    <!-- Select2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/trips.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-gradient-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{% url 'port:home' %}">نظام إدارة المندوب</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'port:delivery_orders' %}">أوامر التسليم</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'port:containers_list' %}">الحاويات</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'port:drivers_list' %}">السائقين</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'port:trucks_list' %}">الشاحنات</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'port:trip_list' %}">الرحلات</a>
+                    </li>
+                    
+                </ul>
+                {% if user.is_authenticated %}
+                <div class="navbar-nav">
+                    <span class="nav-item nav-link text-light">{{ user.first_name }} {{ user.last_name }}</span>
+                    <a class="nav-link" href="{% url 'logout' %}">تسجيل الخروج</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <!-- Messages -->
+    {% if messages %}
+    <div class="container mt-3">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Main Content -->
+    <div class="container mt-5">
+        {% block content %}
+        <!-- المحتوى الخاص بكل صفحة سيذهب هنا -->
+        {% endblock %}
+    </div>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Select2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        // تحميل الصور بشكل كسول (Lazy Loading)
+        document.addEventListener("DOMContentLoaded", function() {
+            var lazyImages = [].slice.call(document.querySelectorAll("img.lazy"));
+            
+            if ("IntersectionObserver" in window) {
+                let lazyImageObserver = new IntersectionObserver(function(entries, observer) {
+                    entries.forEach(function(entry) {
+                        if (entry.isIntersecting) {
+                            let lazyImage = entry.target;
+                            lazyImage.src = lazyImage.dataset.src;
+                            lazyImage.classList.remove("lazy");
+                            lazyImageObserver.unobserve(lazyImage);
+                        }
+                    });
+                });
+                
+                lazyImages.forEach(function(lazyImage) {
+                    lazyImageObserver.observe(lazyImage);
+                });
+            }
+        });
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html> 

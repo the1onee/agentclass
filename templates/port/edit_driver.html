@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}تعديل سائق - {{ driver.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <h2>تعديل سائق: {{ driver.name }}</h2>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{% url 'port:drivers_list' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> رجوع
+            </a>
+        </div>
+    </div>
+    
+    <div class="card mt-3">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label for="id_name" class="form-label">الاسم</label>
+                    {{ form.name }}
+                </div>
+                <div class="mb-3">
+                    <label for="id_phone_number" class="form-label">رقم الهاتف</label>
+                    {{ form.phone_number }}
+                </div>
+                <div class="mb-3 form-check">
+                    {{ form.is_active }}
+                    <label class="form-check-label" for="id_is_active">نشط</label>
+                </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> حفظ التغييرات
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %} 

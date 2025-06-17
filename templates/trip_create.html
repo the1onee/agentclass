@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block title %}إنشاء رحلة جديدة{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">إنشاء رحلة جديدة</h2>
+<form method="post" action="{% url 'trip_create' %}">
+    {% csrf_token %}
+    <div class="form-group">
+        <label for="delivery_permission">إذن التسليم</label>
+        <input type="text" class="form-control" id="delivery_permission" name="delivery_permission" required>
+    </div>
+    <div class="form-group">
+        <label for="start_date">تاريخ البدء</label>
+        <input type="date" class="form-control" id="start_date" name="start_date" required>
+    </div>
+    <div class="form-group">
+        <label for="containers">الحاويات</label>
+        <select multiple class="form-control" id="containers" name="containers">
+            <!-- سيتم تحميل الحاويات هنا باستخدام JavaScript -->
+        </select>
+    </div>
+    <button type="submit" class="btn btn-primary">إنشاء الرحلة</button>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    $(document).ready(function() {
+        $('#delivery_permission').change(function() {
+            var permissionId = $(this).val();
+            // قم بتحميل الحاويات المرتبطة بإذن التسليم المحدد باستخدام AJAX
+            $.ajax({
+                url: '/get-containers/',
+                data: {
+                    'permission_id': permissionId
+                },
+                success: function(data) {
+                    $('#containers').empty();
+                    $.each(data.containers, function(index, container) {
+                        $('#containers').append(new Option(container.name, container.id));
+                    });
+                }
+            });
+        });
+    });
+</script>
+{% endblock %} 

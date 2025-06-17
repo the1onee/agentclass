@@ -1,0 +1,224 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+
+{% block title %}أوامر التسليم{% endblock %}
+ب
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <!-- قائمة أوامر التسليم -->
+        <div class="col-md-4">
+            <div class="card shadow-sm transition">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">أوامر التسليم ({{ orders_count }})</h5>
+                    <a href="{% url 'port:add_item' 'order' %}" class="btn btn-primary btn-sm">إضافة أمر جديد</a>
+                </div>
+                <div class="list-group list-group-flush">
+                    {% for order in orders %}
+                        <a href="#" 
+                           class="list-group-item list-group-item-action order-item transition" 
+                           data-order-id="{{ order.id }}">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ order.order_number }}</h6>
+                                <small>{{ order.issue_date|date:"Y-m-d" }}</small>
+                            </div>
+                            <p class="mb-1">{{ order.get_status_display }}</p>
+                        </a>
+                    {% empty %}
+                        <div class="list-group-item">لا توجد أوامر تسليم</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- تفاصيل الحاويات -->
+        <div class="col-md-8">
+            <div class="card shadow-sm transition">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">الحاويات</h5>
+                    <button class="btn btn-primary btn-sm" id="addContainerBtn" style="display: none;">
+                        إضافة حاوية
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="containersTable" style="display: none;">
+                            <thead>
+                                <tr>
+                                    <th>رقم الحاوية</th>
+                                    <th>الوزن</th>
+                                    <th>النوع</th>
+                                    <th>حالة الإذن</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in orders %}
+                                    <tr>
+                                        <td>{{ order.order_number }}</td>
+                                        <td>{{ order.weight }} طن</td>
+                                        <td>{{ order.get_container_type_display }}</td>
+                                        <td>
+                                            <span class="badge 
+                                                {% if order.permission_status == 'loading' %}bg-primary
+                                                {% elif order.permission_status == 'empty' %}bg-secondary
+                                                {% elif order.permission_status == 'general_goods' %}bg-success
+                                                {% else %}bg-info{% endif %}">
+                                                {{ order.get_permission_status_display }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                {% empty %}
+                                    <tr>
+                                        <td colspan="4">لا توجد أوامر تسليم</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="rawData" class="bg-light p-3 rounded" style="display: none;">
+                        <pre><code></code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- نموذج إضافة حاوية -->
+<div class="modal fade" id="addContainerModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">إضافة حاوية جديدة</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="containerForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">رقم الحاوية</label>
+                        <input type="text" class="form-control" name="container_number" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">الوزن (طن)</label>
+                        <input type="number" class="form-control" name="weight" step="0.01" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">نوع الحاوية</label>
+                        <select class="form-control" name="container_type" required>
+                            {% for type in container_types %}
+                                <option value="{{ type.value }}">{{ type.label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-primary" id="saveContainer">حفظ</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentOrderId = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    const orderItems = document.querySelectorAll('.order-item');
+    const rawData = document.getElementById('rawData');
+    const addContainerBtn = document.getElementById('addContainerBtn');
+    const modal = new bootstrap.Modal(document.getElementById('addContainerModal'));
+
+    // عند اختيار أمر تسليم
+    orderItems.forEach(item => {
+        item.addEventListener('click', function(e) {
+            e.preventDefault();
+            currentOrderId = this.dataset.orderId;
+            
+            // إزالة الفئة النشطة من جميع العناصر
+            orderItems.forEach(i => i.classList.remove('active'));
+            // إضافة الفئة النشطة للعنصر المحدد
+            this.classList.add('active');
+            
+            // جلب بيانات الحاويات
+            fetch(`/port/delivery-orders/${currentOrderId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    // عرض البيانات في شكل JSON
+                    rawData.style.display = 'block';
+                    rawData.querySelector('code').textContent = JSON.stringify(data, null, 2);
+                    
+                    // عرض زر إضافة حاوية
+                    addContainerBtn.style.display = 'block';
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('حدث خطأ في جلب البيانات');
+                });
+        });
+    });
+
+    // عند الضغط على زر إضافة حاوية
+    addContainerBtn.addEventListener('click', () => modal.show());
+
+    // عند حفظ الحاوية
+    document.getElementById('saveContainer').addEventListener('click', function() {
+        const form = document.getElementById('containerForm');
+        const formData = new FormData(form);
+
+        fetch(`/port/delivery-orders/${currentOrderId}/add-container/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.errors) {
+                alert('حدث خطأ في إضافة الحاوية');
+            } else {
+                modal.hide();
+                form.reset();
+                
+                // تحديث عرض البيانات
+                fetch(`/port/delivery-orders/${currentOrderId}/`)
+                    .then(response => response.json())
+                    .then(updatedData => {
+                        rawData.querySelector('code').textContent = 
+                            JSON.stringify(updatedData, null, 2);
+                    });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('حدث خطأ في إضافة الحاوية');
+        });
+    });
+});
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %} 

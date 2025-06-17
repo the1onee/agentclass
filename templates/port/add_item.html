@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="text-center mb-0">{{ title }}</h3>
+                </div>
+                <div class="card-body">
+                    <form method="post" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        
+                        <!-- حقول إذن التسليم -->
+                        {% for field in form %}
+                            {% if field.name != 'bulk_containers' %}
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">{{ field.label }}</label>
+                                    {% if field.errors %}
+                                        {{ field|add_class:"form-control is-invalid" }}
+                                        {% for error in field.errors %}
+                                            <div class="invalid-feedback">{{ error }}</div>
+                                        {% endfor %}
+                                    {% else %}
+                                        {{ field|add_class:"form-control" }}
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+
+                        <!-- حقل إدخال أرقام الحاويات -->
+                        {% if item_type == 'order' %}
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">{{ form.bulk_containers.label }}</label>
+                            {{ form.bulk_containers }}
+                            <div class="form-text text-muted">
+                                أدخل رقم كل حاوية في سطر منفصل. مثال:
+                                <pre class="mt-2">
+CONT123456
+CONT789012
+CONT345678</pre>
+                            </div>
+                            {% if form.bulk_containers.errors %}
+                                {% for error in form.bulk_containers.errors %}
+                                    <div class="invalid-feedback d-block">{{ error }}</div>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                        {% endif %}
+
+                        <div class="text-center mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg px-5">
+                                <i class="fas fa-save me-2"></i>حفظ
+                            </button>
+                            <a href="{% url 'port:home' %}" class="btn btn-outline-secondary btn-lg px-5">
+                                <i class="fas fa-times me-2"></i>إلغاء
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .card {
+        border-radius: 15px;
+        transition: transform 0.3s ease;
+    }
+    
+    .card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .form-control {
+        border-radius: 8px;
+        padding: 12px;
+    }
+    
+    .btn {
+        border-radius: 8px;
+        min-width: 120px;
+    }
+</style>
+
+<script>
+    // Example starter JavaScript for disabling form submissions if there are invalid fields
+    (() => {
+        'use strict'
+        
+        // Fetch all the forms we want to apply custom Bootstrap validation styles to
+        const forms = document.querySelectorAll('.needs-validation')
+        
+        // Loop over them and prevent submission
+        Array.from(forms).forEach(form => {
+            form.addEventListener('submit', event => {
+                if (!form.checkValidity()) {
+                    event.preventDefault()
+                    event.stopPropagation()
+                }
+                
+                form.classList.add('was-validated')
+            }, false)
+        })
+    })()
+
+    document.getElementById('add-container').addEventListener('click', function() {
+        const containerForms = document.getElementById('container-forms');
+        const totalForms = document.querySelector('#id_form-TOTAL_FORMS');
+        const formNum = parseInt(totalForms.value);
+        
+        // Clone the first form
+        const newForm = containerForms.querySelector('.container-form').cloneNode(true);
+        
+        // Update form index
+        newForm.innerHTML = newForm.innerHTML.replace(/form-(\d+)/g, `form-${formNum}`);
+        newForm.innerHTML = newForm.innerHTML.replace(/\[(\d+)\]/g, `[${formNum}]`);
+        
+        // Clear inputs
+        newForm.querySelectorAll('input').forEach(input => input.value = '');
+        
+        // Add new form to the page
+        containerForms.appendChild(newForm);
+        
+        // Update total forms count
+        totalForms.value = formNum + 1;
+    });
+</script>
+{% endblock %} 

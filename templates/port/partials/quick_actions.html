@@ -1,0 +1,69 @@
+<div class="card dashboard-card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">الإجراءات السريعة</h5>
+    </div>
+    <div class="card-body">
+        <div class="quick-actions-grid">
+            <a href="{% url 'port:add_item' 'order' %}" class="quick-action-btn">
+                <div class="quick-action-icon">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                <span>إضافة إذن تسليم</span>
+            </a>
+            <a href="{% url 'port:add_trip' %}" class="quick-action-btn">
+                <div class="quick-action-icon">
+                    <i class="fas fa-truck-moving"></i>
+                </div>
+                <span>إضافة رحلة</span>
+            </a>
+            <a href="{% url 'port:add_item' 'container' %}" class="quick-action-btn">
+                <div class="quick-action-icon">
+                    <i class="fas fa-box"></i>
+                </div>
+                <span>إضافة حاوية</span>
+            </a>
+            <a href="{% url 'port:add_item' 'driver' %}" class="quick-action-btn">
+                <div class="quick-action-icon">
+                    <i class="fas fa-user"></i>
+                </div>
+                <span>إضافة سائق</span>
+            </a>
+            <a href="{% url 'port:add_item' 'truck' %}" class="quick-action-btn">
+                <div class="quick-action-icon">
+                    <i class="fas fa-truck"></i>
+                </div>
+                <span>إضافة شاحنة</span>
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="card dashboard-card">
+    <div class="card-header">
+        <h5 class="mb-0">حالة النظام</h5>
+    </div>
+    <div class="card-body">
+        <div class="system-status">
+            <div class="status-item">
+                <div class="status-label">الخادم</div>
+                <div class="status-value">
+                    <span class="status-indicator online"></span> متصل
+                </div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">قاعدة البيانات</div>
+                <div class="status-value">
+                    <span class="status-indicator online"></span> متصل
+                </div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">آخر تحديث</div>
+                <div class="status-value" id="last-update-time">{{ stats.last_update|default:"الآن" }}</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">إصدار النظام</div>
+                <div class="status-value">1.0.0</div>
+            </div>
+        </div>
+    </div>
+</div> 

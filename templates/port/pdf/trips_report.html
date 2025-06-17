@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تقرير الرحلات</title>
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 1cm;
+        }
+        body {
+            font-family: 'Arial', sans-serif;
+            font-size: 12px;
+            direction: rtl;
+        }
+        h1, h2 {
+            text-align: center;
+            color: #333;
+        }
+        .filter-info {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .filter-item {
+            margin: 5px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: right;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 10px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>تقرير الرحلات</h1>
+    
+    <!-- معلومات الفلترة -->
+    <div class="filter-info">
+        <h2>معايير الفلترة</h2>
+        {% if filter_params.query or filter_params.status or filter_params.delivery_order or filter_params.order_type or filter_params.date_from or filter_params.date_to %}
+            {% if filter_params.query %}
+                <div class="filter-item">البحث: {{ filter_params.query }}</div>
+            {% endif %}
+            {% if filter_params.status %}
+                <div class="filter-item">الحالة: 
+                    {% if filter_params.status == 'active' %}نشطة
+                    {% elif filter_params.status == 'completed' %}مكتملة
+                    {% elif filter_params.status == 'pending' %}معلقة
+                    {% else %}{{ filter_params.status }}{% endif %}
+                </div>
+            {% endif %}
+            {% if filter_params.delivery_order %}
+                <div class="filter-item">إذن التسليم: {{ filter_params.delivery_order }}</div>
+            {% endif %}
+            {% if filter_params.order_type %}
+                <div class="filter-item">نوع الإذن: 
+                    {% if filter_params.order_type == 'unloading' %}تفريغ
+                    {% elif filter_params.order_type == 'loading' %}تحميل
+                    {% elif filter_params.order_type == 'partial' %}تجزئة
+                    {% elif filter_params.order_type == 'general' %}بضائع عامة
+                    {% else %}{{ filter_params.order_type }}{% endif %}
+                </div>
+            {% endif %}
+            {% if filter_params.date_from %}
+                <div class="filter-item">من تاريخ: {{ filter_params.date_from }}</div>
+            {% endif %}
+            {% if filter_params.date_to %}
+                <div class="filter-item">إلى تاريخ: {{ filter_params.date_to }}</div>
+            {% endif %}
+        {% else %}
+            <div class="filter-item">جميع الرحلات</div>
+        {% endif %}
+    </div>
+    
+    <!-- جدول الرحلات -->
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>رقم الرحلة</th>
+                <th>إذن التسليم</th>
+                <th>نوع الإذن</th>
+                <th>الحاويات</th>
+                <th>الحالة</th>
+                <th>تاريخ البداية</th>
+                <th>تاريخ النهاية</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for trip in trips %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ trip.id }}</td>
+                <td>{{ trip.delivery_order.order_number }}</td>
+                <td>{{ trip.delivery_order.get_status_display }}</td>
+                <td>{{ trip.containers.count }}</td>
+                <td>
+                    {% if trip.status == 'active' %}نشطة
+                    {% elif trip.status == 'completed' %}مكتملة
+                    {% elif trip.status == 'pending' %}معلقة
+                    {% else %}{{ trip.status }}{% endif %}
+                </td>
+                <td>{{ trip.start_time|date:"Y-m-d" }}</td>
+                <td>{{ trip.end_time|date:"Y-m-d" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8" style="text-align: center;">لا توجد رحلات</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <div class="footer">
+        تم إنشاء هذا التقرير في {{ now|date:"Y-m-d H:i" }}
+    </div>
+
+   
+    <button id="exportExcelBtn">تصدير Excel</button>
+
+    <!-- إضافة مكتبة jsPDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <script>
+    document.getElementById('downloadBtn').addEventListener('click', function() {
+        // إنشاء عنصر لتخزين محتوى التقرير
+        const reportContent = document.createElement('div');
+        reportContent.innerHTML = document.querySelector('body').innerHTML;
+        
+        // إزالة الأزرار من النسخة المراد طباعتها
+        const buttons = reportContent.querySelectorAll('button');
+        buttons.forEach(button => button.remove());
+        
+        // إنشاء PDF
+        html2canvas(document.body, {
+            scale: 1,
+            useCORS: true,
+            allowTaint: true,
+            onclone: function(clonedDoc) {
+                // إزالة الأزرار من النسخة المراد تصويرها
+                clonedDoc.querySelectorAll('button').forEach(btn => btn.style.display = 'none');
+                clonedDoc.querySelectorAll('script').forEach(script => script.remove());
+            }
+        }).then(function(canvas) {
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jspdf.jsPDF({
+                orientation: 'landscape',
+                unit: 'mm',
+                format: 'a4'
+            });
+            
+            const imgProps = pdf.getImageProperties(imgData);
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+            
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            pdf.save('تقرير_الرحلات.pdf');
+        });
+    });
+    
+    document.getElementById('exportExcelBtn').addEventListener('click', function() {
+        const link = document.createElement('a');
+        link.href = 'path/to/your/file.xlsx'; // استبدل هذا بمسار ملف Excel الخاص بك
+        link.download = 'trips_report.xlsx'; // اسم الملف عند التحميل
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    });
+    </script>
+</body>
+</html> 

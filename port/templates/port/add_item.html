@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h3 class="mb-0">إضافة إذن تسليم جديد</h3>
+        </div>
+        <div class="card-body">
+            <form method="post" class="needs-validation" novalidate>
+                {% csrf_token %}
+                
+                <div class="row">
+                    <!-- معلومات إذن التسليم -->
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">{{ form.order_number.label }}</label>
+                            {{ form.order_number }}
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">{{ form.issue_date.label }}</label>
+                            {{ form.issue_date }}
+                        </div>
+                    </div>
+
+                    <!-- إضافة الحاويات -->
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">{{ form.bulk_containers.label }}</label>
+                            {{ form.bulk_containers }}
+                            <div class="form-text">
+                                يمكنك نسخ ولصق أرقام الحاويات من Excel (رقم واحد في كل سطر)
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- الملاحظات -->
+                    <div class="col-12">
+                        <div class="mb-3">
+                            <label class="form-label">{{ form.notes.label }}</label>
+                            {{ form.notes }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 text-center">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-save me-2"></i>حفظ
+                    </button>
+                    <a href="{% url 'port:delivery_orders' %}" class="btn btn-secondary btn-lg ms-2">
+                        <i class="fas fa-times me-2"></i>إلغاء
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // تنظيف البيانات المدخلة
+    const containersTextarea = document.querySelector('[name="bulk_containers"]');
+    if (containersTextarea) {
+        containersTextarea.addEventListener('paste', function(e) {
+            // تأخير قصير للسماح بإكمال عملية اللصق
+            setTimeout(() => {
+                // تنظيف البيانات وإزالة الأسطر الفارغة
+                let lines = this.value.split('\n')
+                    .map(line => line.trim())
+                    .filter(line => line.length > 0);
+                this.value = lines.join('\n');
+            }, 100);
+        });
+    }
+});
+</script>
+{% endblock %}
+{% endblock %} 

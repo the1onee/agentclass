@@ -1,0 +1,1392 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}أوامر التسليم - نظام إدارة المندوب{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    {% csrf_token %}
+    <!-- Top Navigation Bar -->
+    <div class="top-nav-bar">
+        <div class="container-fluid">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h1 class="dashboard-title">أوامر التسليم <small class="text-muted" ></small></h1>
+                </div>
+                <div class="col-md-6 text-end">
+                    <div class="action-buttons">
+                        <button id="refreshOrders" class="btn btn-light btn-sm me-2" data-bs-toggle="tooltip" title="تحديث" onclick="refreshOrdersList()">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-light btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-cog me-1"></i>
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="javascript:void(0);" onclick="bulkChangeStatus()" id="bulkStatus"><i class="fas fa-tag me-2 text-warning"></i> تغيير الحالة</a></li>
+                                <li><a class="dropdown-item" href="javascript:void(0);" onclick="deleteSelectedOrders()" id="bulkDelete"><i class="fas fa-trash-alt me-2 text-danger"></i> حذف المحدد</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-2">
+                <div class="sidebar">
+                    <div class="user-profile text-center mb-4">
+                        <div class="avatar-circle">
+                            <span class="initials">{{ user.get_full_name|slice:":1" }}</span>
+                        </div>
+                        <h5 class="mt-3 mb-1">{{ user.get_full_name }}</h5>
+                        <p class="text-muted small">{{ user.email }}</p>
+                    </div>
+                    
+                    <div class="nav-menu">
+                        <a href="{% url 'port:home' %}" class="nav-link">
+                            <i class="fas fa-tachometer-alt"></i> لوحة التحكم
+                        </a>
+                        <a href="{% url 'port:delivery_orders' %}" class="nav-link active">
+                            <i class="fas fa-file-alt"></i> أوامر التسليم
+                        </a>
+                        <a href="{% url 'port:trip_list' %}" class="nav-link">
+                            <i class="fas fa-truck-moving"></i> الرحلات
+                        </a>
+                        <a href="{% url 'port:containers_list' %}" class="nav-link">
+                            <i class="fas fa-box"></i> الحاويات
+                        </a>
+                        <a href="{% url 'port:drivers_list' %}" class="nav-link">
+                            <i class="fas fa-users"></i> السائقين
+                        </a>
+                        <a href="{% url 'port:trucks_list' %}" class="nav-link">
+                            <i class="fas fa-truck"></i> الشاحنات
+                        </a>
+                        
+                        <div class="nav-section-title mt-4">الإضافات السريعة</div>
+                        <a href="{% url 'port:add_item' 'order' %}" class="nav-link quick-add">
+                            <i class="fas fa-plus-circle"></i> إضافة إذن تسليم
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-10">
+                <!-- Date & Time -->
+                <div class="date-time-bar mb-4">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="current-date">
+                                <i class="far fa-calendar-alt"></i> <span id="currentDate"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <div class="current-time">
+                                <i class="far fa-clock"></i> <span id="currentTime"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Orders Summary Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="stat-card bg-gradient-primary">
+                            <div class="stat-card-body">
+                                <div class="stat-card-icon">
+                                    <i class="fas fa-file-alt"></i>
+                                </div>
+                                <div class="stat-card-info">
+                                    <h5 class="stat-card-title">إجمالي الأذونات</h5>
+                                    <div class="stat-card-value" id="totalOrdersCount">{{ orders|length }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card bg-gradient-success">
+                            <div class="stat-card-body">
+                                <div class="stat-card-icon">
+                                    <i class="fas fa-truck-loading"></i>
+                                </div>
+                                <div class="stat-card-info">
+                                    <h5 class="stat-card-title">أذونات التفريغ</h5>
+                                    <div class="stat-card-value" id="unloadingCount">{{ unloading_count|default:0 }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card bg-gradient-info">
+                            <div class="stat-card-body">
+                                <div class="stat-card-icon">
+                                    <i class="fas fa-dolly-flatbed"></i>
+                                </div>
+                                <div class="stat-card-info">
+                                    <h5 class="stat-card-title">أذونات التحميل</h5>
+                                    <div class="stat-card-value" id="loadingCount">{{ loading_count|default:0 }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card bg-gradient-warning">
+                            <div class="stat-card-body">
+                                <div class="stat-card-icon">
+                                    <i class="fas fa-box-open"></i>
+                                </div>
+                                <div class="stat-card-info">
+                                    <h5 class="stat-card-title">البضائع العامة</h5>
+                                    <div class="stat-card-value" id="generalCount">{{ general_count|default:0 }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Orders Card -->
+                <div class="card main-card shadow-lg animate__animated animate__fadeIn">
+                    <div class="card-header d-flex justify-content-between align-items-center bg-gradient-primary text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-clipboard-list me-2"></i> قائمة أوامر التسليم
+                        </h5>
+                        <a href="{% url 'port:add_item' 'order' %}" class="btn btn-light btn-sm">
+                            <i class="fas fa-plus me-1"></i> إضافة أمر جديد
+                        </a>
+                    </div>
+                    
+                    <div class="card-body">
+                        <!-- Search and Filter -->
+                        <div class="search-filter-section mb-4">
+                            <form method="get" class="row g-3">
+                                <div class="col-md-5">
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light">
+                                            <i class="fas fa-search"></i>
+                                        </span>
+                                        <input type="text" name="search" class="form-control" 
+                                               placeholder="بحث عن رقم الإذن..." value="{{ search_query }}">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <select name="status" class="form-select">
+                                        <option value="">كل الحالات</option>
+                                        {% for value, label in status_choices %}
+                                        <option value="{{ value }}" {% if value == status_filter %}selected{% endif %}>
+                                            {{ label }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <button type="submit" class="btn btn-primary w-100">
+                                        <i class="fas fa-filter me-1"></i> تصفية
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                        
+                        <!-- Bulk Actions -->
+                        <div class="bulk-actions mb-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="selectAllTable">
+                                        <label class="form-check-label" for="selectAllTable">
+                                            تحديد الكل
+                                        </label>
+                                    </div>
+                                </div>
+                                 
+                            </div>
+                        </div>
+
+                        <!-- Orders Table -->
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle custom-table">
+                                <thead class="bg-light">
+                                    <tr>
+                                        <th width="40">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="selectAllTable">
+                                            </div>
+                                        </th>
+                                        <th>رقم الإذن</th>
+                                        <th>تاريخ الإصدار</th>
+                                        <th>الحالة</th>
+                                        <th>عدد الحاويات</th>
+                                        <th>الإجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for order in orders %}
+                                    <tr class="order-row animate__animated animate__fadeIn" data-order-id="{{ order.id }}">
+                                        <td>
+                                            <div class="form-check">
+                                                <input class="form-check-input order-checkbox" 
+                                                       type="checkbox" 
+                                                       value="{{ order.id }}"
+                                                       data-order-number="{{ order.order_number }}">
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="order-number fw-bold" data-bs-toggle="tooltip" title="انقر لعرض التفاصيل">
+                                                {{ order.order_number }}
+                                            </div>
+                                        </td>
+                                        <td>{{ order.issue_date|date:"Y-m-d" }}</td>
+                                        <td>
+                                            <span class="status-badge 
+                                                {% if order.status == 'LOADING' %}badge-primary
+                                                {% elif order.status == 'EMPTY' %}badge-secondary
+                                                {% elif order.status == 'GENERAL_CARGO' %}badge-warning
+                                                {% else %}badge-info{% endif %}">
+                                                {{ order.get_status_display }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="containers-count">
+                                                <span class="badge bg-light text-dark">{{ order.containers.count }}</span>
+                                                {% if order.containers.count > 0 %}
+                                                <button class="btn btn-link btn-sm view-containers p-0 ms-2" 
+                                                        data-bs-toggle="tooltip" 
+                                                        title="عرض الحاويات"
+                                                        data-order-id="{{ order.id }}">
+                                                    
+                                                </button>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="action-buttons">
+                                                <a href="{% url 'port:edit_item' 'order' order.id %}" class="btn btn-sm btn-outline-primary me-1" data-bs-toggle="tooltip" title="تعديل">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <button class="btn btn-sm btn-outline-danger delete-item" 
+                                                        data-item-type="order" 
+                                                        data-item-id="{{ order.id }}"
+                                                        data-bs-toggle="tooltip" 
+                                                        title="حذف">
+                                                    <i class="fas fa-trash-alt"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="6" class="text-center py-5">
+                                            <div class="empty-state">
+                                                <div class="empty-state-icon">
+                                                    <i class="fas fa-clipboard-list"></i>
+                                                </div>
+                                                <h4>لا توجد أوامر تسليم</h4>
+                                                <p class="text-muted">قم بإضافة أمر تسليم جديد للبدء</p>
+                                                <a href="{% url 'port:add_item' 'order' %}" class="btn btn-primary mt-3">
+                                                    <i class="fas fa-plus me-2"></i> إضافة أمر تسليم
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Pagination -->
+                        {% if orders.has_other_pages %}
+                        <nav class="mt-4" aria-label="Page navigation">
+                            <ul class="pagination justify-content-center">
+                                {% if orders.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page=1&search={{ search_query }}&status={{ status_filter }}" aria-label="First">
+                                        <span aria-hidden="true">&laquo;&laquo;</span>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ orders.previous_page_number }}&search={{ search_query }}&status={{ status_filter }}" aria-label="Previous">
+                                        <span aria-hidden="true">&laquo;</span>
+                                    </a>
+                                </li>
+                                {% endif %}
+
+                                {% for num in orders.paginator.page_range %}
+                                <li class="page-item {% if num == orders.number %}active{% endif %}">
+                                    <a class="page-link" href="?page={{ num }}&search={{ search_query }}&status={{ status_filter }}">{{ num }}</a>
+                                </li>
+                                {% endfor %}
+
+                                {% if orders.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ orders.next_page_number }}&search={{ search_query }}&status={{ status_filter }}" aria-label="Next">
+                                        <span aria-hidden="true">&raquo;</span>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ orders.paginator.num_pages }}&search={{ search_query }}&status={{ status_filter }}" aria-label="Last">
+                                        <span aria-hidden="true">&raquo;&raquo;</span>
+                                    </a>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Containers Modal -->
+<div class="modal fade" id="containersModal" tabindex="-1" aria-labelledby="containersModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-gradient-info text-white">
+                <h5 class="modal-title" id="containersModalLabel">الحاويات المرتبطة</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-hover" id="containersTable">
+                        <thead>
+                            <tr>
+                                <th>رقم الحاوية</th>
+                                <th>النوع</th>
+                                <th>الوزن</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- سيتم ملء هذا الجدول ديناميكيًا -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Order Details Modal -->
+<div class="modal fade" id="orderDetailsModal" tabindex="-1" aria-labelledby="orderDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-gradient-primary text-white">
+                <h5 class="modal-title" id="orderDetailsModalLabel">تفاصيل الأمر</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="order-details-content">
+                    <!-- سيتم ملء هذا المحتوى ديناميكيًا -->
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">جاري التحميل...</span>
+                        </div>
+                        <p class="mt-3">جاري تحميل تفاصيل الأمر...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <a href="#" class="btn btn-primary edit-order-link">
+                    <i class="fas fa-edit me-1"></i> تعديل الأمر
+                </a>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Status Modal -->
+<div class="modal fade" id="bulkStatusModal" tabindex="-1" aria-labelledby="bulkStatusModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-gradient-warning text-white">
+                <h5 class="modal-title" id="bulkStatusModalLabel">تغيير حالة الأذونات</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="/port/delivery-orders/bulk-status/" method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="orders" id="selectedOrdersForStatus">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="statusSelect" class="form-label">اختر الحالة الجديدة</label>
+                        <select class="form-select" id="statusSelect" name="status" required>
+                            <option value="">-- اختر الحالة --</option>
+                            {% for value, label in status_choices %}
+                            <option value="{{ value }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-warning">تغيير الحالة</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+/* تصميم عام */
+.dashboard-container {
+    background-color: #f8f9fa;
+    min-height: 100vh;
+}
+
+.top-nav-bar {
+    background-color: #fff;
+    padding: 15px 0;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.dashboard-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 0;
+}
+
+.dashboard-title small {
+    font-size: 1rem;
+    opacity: 0.7;
+}
+
+/* شريط التاريخ والوقت */
+.date-time-bar {
+    background-color: #fff;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.current-date, .current-time {
+    font-size: 1.1rem;
+    color: #555;
+}
+
+/* الشريط الجانبي */
+.sidebar {
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    padding: 20px;
+    height: calc(100vh - 100px);
+    position: sticky;
+    top: 20px;
+}
+
+.avatar-circle {
+    width: 70px;
+    height: 70px;
+    background-color: #6366f1;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+}
+
+.initials {
+    font-size: 2rem;
+    color: white;
+    font-weight: 600;
+}
+
+.nav-menu {
+    margin-top: 20px;
+}
+
+.nav-link {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    color: #555;
+    border-radius: 8px;
+    margin-bottom: 5px;
+    transition: all 0.3s ease;
+}
+
+.nav-link i {
+    margin-left: 10px;
+    font-size: 1.1rem;
+    width: 20px;
+    text-align: center;
+}
+
+.nav-link:hover {
+    background-color: #f0f1fe;
+    color: #6366f1;
+}
+
+.nav-link.active {
+    background-color: #6366f1;
+    color: white;
+}
+
+.nav-section-title {
+    font-size: 0.9rem;
+    color: #888;
+    margin-bottom: 10px;
+    padding-right: 15px;
+}
+
+.quick-add {
+    color: #6366f1;
+    background-color: #f0f1fe;
+}
+
+.quick-add:hover {
+    background-color: #e0e1fd;
+}
+
+/* بطاقات الإحصائيات */
+.stat-card {
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+}
+
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+}
+
+.bg-gradient-success {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.bg-gradient-info {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+}
+
+.bg-gradient-warning {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+.stat-card-body {
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    color: white;
+}
+
+.stat-card-icon {
+    width: 60px;
+    height: 60px;
+    background-color: rgba(255,255,255,0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 15px;
+}
+
+.stat-card-icon i {
+    font-size: 1.8rem;
+}
+
+.stat-card-title {
+    font-size: 1rem;
+    margin-bottom: 5px;
+    opacity: 0.9;
+}
+
+.stat-card-value {
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+/* البطاقة الرئيسية */
+.main-card {
+    border-radius: 10px;
+    overflow: hidden;
+    border: none;
+}
+
+.main-card .card-header {
+    padding: 15px 20px;
+}
+
+/* جدول أوامر التسليم */
+.custom-table {
+    border-collapse: separate;
+    border-spacing: 0 8px;
+}
+
+.custom-table thead th {
+    border: none;
+    padding: 12px 15px;
+    font-weight: 600;
+    color: #555;
+}
+
+.custom-table tbody tr {
+    background-color: #fff;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.custom-table tbody tr:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.custom-table tbody td {
+    border: none;
+    padding: 15px;
+    vertical-align: middle;
+}
+
+.custom-table tbody tr td:first-child {
+    border-radius: 0 8px 8px 0;
+}
+
+.custom-table tbody tr td:last-child {
+    border-radius: 8px 0 0 8px;
+}
+
+/* بادجات الحالة */
+.status-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-weight: 500;
+    font-size: 0.85rem;
+}
+
+.badge-primary {
+    background-color: #e0e7ff;
+    color: #4f46e5;
+}
+
+.badge-secondary {
+    background-color: #e5e7eb;
+    color: #4b5563;
+}
+
+.badge-info {
+    background-color: #dbeafe;
+    color: #2563eb;
+}
+
+.badge-warning {
+    background-color: #fef3c7;
+    color: #d97706;
+}
+
+/* أزرار الإجراءات */
+.action-buttons .btn {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+}
+
+.action-buttons .btn:hover {
+    transform: translateY(-2px);
+}
+
+/* حالة فارغة */
+.empty-state {
+    text-align: center;
+    padding: 30px;
+}
+
+.empty-state-icon {
+    width: 80px;
+    height: 80px;
+    background-color: #f0f1fe;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+}
+
+.empty-state-icon i {
+    font-size: 2rem;
+    color: #6366f1;
+}
+
+/* مودال الحاويات */
+.modal-content {
+    border: none;
+    overflow: hidden;
+}
+
+.icon-box {
+    width: 40px;
+    height: 40px;
+}
+
+/* شبكة الحاويات في المودال */
+.containers-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 15px;
+}
+
+.container-card {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    padding: 15px;
+    transition: all 0.3s ease;
+}
+
+.container-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+/* تفاصيل الأمر */
+.order-details-section {
+    margin-bottom: 20px;
+}
+
+.order-details-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: #6366f1;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 5px;
+}
+
+.order-details-row {
+    display: flex;
+    margin-bottom: 8px;
+}
+
+.order-details-label {
+    width: 40%;
+    font-weight: 500;
+    color: #555;
+}
+
+.order-details-value {
+    width: 60%;
+    color: #333;
+}
+
+/* تأثيرات التحميل */
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #6366f1;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* تأثير الدوران لزر التحديث */
+.rotating {
+    animation: rotate 1s linear infinite;
+}
+
+@keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* تأثيرات الانتقال */
+.fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* تأثير النبض للبادجات */
+.pulse {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+/* تأثير التلاشي للتنبيهات */
+.alert-fade {
+    animation: alertFade 0.3s ease-in-out;
+}
+
+@keyframes alertFade {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Current Date & Time
+    function updateDateTime() {
+        const now = new Date();
+        const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit' };
+        
+        document.getElementById('currentDate').textContent = now.toLocaleDateString('ar-SA', dateOptions);
+        document.getElementById('currentTime').textContent = now.toLocaleTimeString('ar-SA', timeOptions);
+    }
+    
+    updateDateTime();
+    setInterval(updateDateTime, 1000);
+    
+    // تفعيل التلميحات (Tooltips)
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+    // تحديد جميع الأذونات
+    const selectAllCheckbox = document.getElementById('selectAllTable');
+    const orderCheckboxes = document.querySelectorAll('.order-checkbox');
+    const bulkActionsButtons = document.getElementById('deleteSelected');
+    
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            const isChecked = this.checked;
+            orderCheckboxes.forEach(checkbox => {
+                checkbox.checked = isChecked;
+            });
+            
+            updateBulkActionsVisibility();
+        });
+    }
+    
+    // تحديد الكل في الجدول أيضًا
+    const selectAll = document.getElementById('selectAll');
+    if (selectAll) {
+        selectAll.addEventListener('change', function() {
+            const isChecked = this.checked;
+            orderCheckboxes.forEach(checkbox => {
+                checkbox.checked = isChecked;
+            });
+            
+            // تحديث حالة الـ checkbox الآخر
+            if (selectAllCheckbox) {
+                selectAllCheckbox.checked = isChecked;
+            }
+            
+            updateBulkActionsVisibility();
+        });
+    }
+    
+    orderCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            updateBulkActionsVisibility();
+            
+            // تحديث حالة "تحديد الكل" إذا تم تحديد جميع الأذونات
+            const allChecked = Array.from(orderCheckboxes).every(cb => cb.checked);
+            if (selectAllCheckbox) {
+                selectAllCheckbox.checked = allChecked;
+            }
+            if (selectAll) {
+                selectAll.checked = allChecked;
+            }
+        });
+    });
+    
+    function updateBulkActionsVisibility() {
+        const anyChecked = Array.from(orderCheckboxes).some(cb => cb.checked);
+        const deleteSelectedDiv = document.getElementById('deleteSelected');
+        
+        if (deleteSelectedDiv) {
+            deleteSelectedDiv.style.display = anyChecked ? 'block' : 'none';
+            
+            // تحديث عدد الأذونات المحددة
+            const selectedCount = Array.from(orderCheckboxes).filter(cb => cb.checked).length;
+            const countElement = document.getElementById('selectedCount');
+            if (countElement) {
+                countElement.textContent = selectedCount;
+            }
+        }
+    }
+    
+    // عرض تفاصيل الأمر
+    const orderDetailsModal = new bootstrap.Modal(document.getElementById('orderDetailsModal'));
+    const viewButtons = document.querySelectorAll('.view-order-details');
+    
+    function showOrderDetails(orderId) {
+        // هنا يمكن إضافة طلب AJAX لجلب تفاصيل الأمر
+        fetch(`/port/delivery-orders/${orderId}/details/`)
+            .then(response => response.json())
+            .then(data => {
+                const modalContent = document.querySelector('.order-details-content');
+                const editLink = document.querySelector('.edit-order-link');
+                
+                // تحديث عنوان المودال
+                document.getElementById('orderDetailsModalLabel').textContent = `تفاصيل الأمر: ${data.order_number}`;
+                
+                // تحديث رابط التعديل
+                editLink.href = `/port/edit/order/${orderId}/`;
+                
+                // إنشاء محتوى التفاصيل
+                let detailsHTML = `
+                    <div class="order-details-section">
+                        <div class="order-details-title">معلومات أساسية</div>
+                        <div class="order-details-row">
+                            <div class="order-details-label">رقم الأمر:</div>
+                            <div class="order-details-value">${data.order_number}</div>
+                        </div>
+                        <div class="order-details-row">
+                            <div class="order-details-label">تاريخ الإصدار:</div>
+                            <div class="order-details-value">${data.issue_date}</div>
+                        </div>
+                        <div class="order-details-row">
+                            <div class="order-details-label">الحالة:</div>
+                            <div class="order-details-value">
+                                <span class="badge 
+                                    ${data.status === 'LOADING' ? 'badge-primary' : 
+                                    data.status === 'EMPTY' ? 'badge-secondary' : 
+                                    data.status === 'GENERAL_CARGO' ? 'badge-warning' : 'badge-info'}">
+                                    ${data.status_display}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="order-details-row">
+                            <div class="order-details-label">الملاحظات:</div>
+                            <div class="order-details-value">${data.notes || 'لا توجد ملاحظات'}</div>
+                        </div>
+                    </div>
+                `;
+                
+                if (data.containers && data.containers.length > 0) {
+                    detailsHTML += `
+                        <div class="order-details-section">
+                            <div class="order-details-title">الحاويات المرتبطة</div>
+                            <div class="containers-grid">
+                    `;
+                    
+                    data.containers.forEach(container => {
+                        detailsHTML += `
+                            <div class="container-card">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h6 class="mb-0">${container.container_number}</h6>
+                                    <span class="badge ${
+                                        container.status === 'LOADING' ? 'badge-primary' : 
+                                        container.status === 'EMPTY' ? 'badge-secondary' : 
+                                        container.status === 'GENERAL_CARGO' ? 'badge-warning' : 'badge-info'
+                                    }">${container.status_display}</span>
+                                </div>
+                                <div class="small text-muted mb-1">النوع: ${container.container_type_display}</div>
+                                <div class="small text-muted">الوزن: ${container.weight ? container.weight + ' طن' : 'غير محدد'}</div>
+                            </div>
+                        `;
+                    });
+                    
+                    detailsHTML += `
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    detailsHTML += `
+                        <div class="order-details-section">
+                            <div class="order-details-title">الحاويات المرتبطة</div>
+                            <div class="text-center py-4 text-muted">
+                                <i class="fas fa-box fa-2x mb-3"></i>
+                                <p>لا توجد حاويات مرتبطة بهذا الأمر</p>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                if (data.trips && data.trips.length > 0) {
+                    detailsHTML += `
+                        <div class="order-details-section">
+                            <div class="order-details-title">الرحلات المرتبطة</div>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>رقم الرحلة</th>
+                                            <th>تاريخ البداية</th>
+                                            <th>تاريخ النهاية</th>
+                                            <th>الحالة</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                    `;
+                    
+                    data.trips.forEach(trip => {
+                        detailsHTML += `
+                            <tr>
+                                <td>
+                                    <a href="/port/trips/${trip.id}/">
+                                        ${trip.id}
+                                    </a>
+                                </td>
+                                <td>${trip.start_time}</td>
+                                <td>${trip.end_time || 'مستمرة'}</td>
+                                <td>
+                                    <span class="badge ${trip.status === 'completed' ? 'badge-success' : trip.status === 'active' ? 'badge-primary' : 'badge-warning'}">
+                                        ${trip.status_display}
+                                    </span>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    
+                    detailsHTML += `
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                modalContent.innerHTML = detailsHTML;
+                orderDetailsModal.show();
+            })
+            .catch(error => {
+                console.error('Error fetching order details:', error);
+                alert('حدث خطأ أثناء جلب تفاصيل الأمر');
+            });
+    }
+    
+    // إضافة مستمعي الأحداث لأزرار العرض
+    viewButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const orderId = this.dataset.orderId;
+            showOrderDetails(orderId);
+        });
+    });
+    
+    // تحديث الصفحة باستخدام AJAX
+    document.getElementById('refreshOrders').addEventListener('click', function() {
+        const refreshButton = this;
+        refreshButton.classList.add('rotating');
+        refreshButton.disabled = true;
+
+        fetch(window.location.href, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.text())
+        .then(html => {
+            // استبدال محتوى الجدول فقط
+            const parser = new DOMParser();
+            const newDocument = parser.parseFromString(html, 'text/html');
+            const newTable = newDocument.querySelector('.custom-table');
+            const currentTable = document.querySelector('.custom-table');
+            
+            if (newTable && currentTable) {
+                currentTable.innerHTML = newTable.innerHTML;
+            }
+
+            // إعادة تفعيل التلميحات
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+            
+            // إعادة تفعيل مستمعي الأحداث
+            attachEventListeners();
+        })
+        .catch(error => {
+            console.error('Error refreshing orders:', error);
+            alert('حدث خطأ أثناء تحديث البيانات');
+        })
+        .finally(() => {
+            refreshButton.classList.remove('rotating');
+            refreshButton.disabled = false;
+        });
+    });
+    
+    // إجراءات متعددة
+    document.getElementById('bulkStatus').addEventListener('click', function() {
+        const selectedOrders = Array.from(orderCheckboxes)
+            .filter(cb => cb.checked)
+            .map(cb => cb.value);
+            
+        if (selectedOrders.length === 0) return;
+        
+        // هنا يمكن فتح مودال لتغيير حالة الأذونات
+        document.getElementById('selectedOrdersForStatus').value = selectedOrders.join(',');
+        const bulkStatusModal = new bootstrap.Modal(document.getElementById('bulkStatusModal'));
+        bulkStatusModal.show();
+    });
+    
+    document.getElementById('bulkDelete').addEventListener('click', function() {
+        const selectedOrders = Array.from(orderCheckboxes)
+            .filter(cb => cb.checked)
+            .map(cb => cb.value);
+            
+        if (selectedOrders.length === 0) return;
+        
+        if (confirm(`هل أنت متأكد من حذف ${selectedOrders.length} أمر؟`)) {
+            // هنا يمكن إرسال طلب لحذف الأذونات المحددة
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/port/delete-multiple-orders/';
+            
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrfmiddlewaretoken';
+            csrfInput.value = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            
+            const ordersInput = document.createElement('input');
+            ordersInput.type = 'hidden';
+            ordersInput.name = 'order_ids';
+            ordersInput.value = JSON.stringify(selectedOrders);
+            
+            form.appendChild(csrfInput);
+            form.appendChild(ordersInput);
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
+    
+    // تحريك الأرقام في البطاقات الإحصائية
+    document.querySelectorAll('.stat-card-value').forEach(element => {
+        const finalValue = parseInt(element.textContent);
+        if (isNaN(finalValue)) return;
+        
+        let currentValue = 0;
+        const duration = 1500;
+        const stepTime = Math.abs(Math.floor(duration / finalValue)) || 50;
+        
+        const timer = setInterval(() => {
+            currentValue += 1;
+            element.textContent = currentValue;
+            
+            if (currentValue >= finalValue) {
+                clearInterval(timer);
+                element.textContent = finalValue;
+            }
+        }, stepTime);
+    });
+
+    // إضافة مستمعي الأحداث لأزرار عرض الحاويات
+    const viewContainerButtons = document.querySelectorAll('.view-containers');
+    
+    viewContainerButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const orderId = this.dataset.orderId;
+            showContainers(orderId);
+        });
+    });
+
+    function showContainers(orderId) {
+        // هنا يمكن إضافة طلب AJAX لجلب تفاصيل الحاويات
+        fetch(`/port/delivery-orders/${orderId}/containers/`)
+            .then(response => response.json())
+            .then(data => {
+                const modalBody = document.querySelector('#containersTable tbody');
+                modalBody.innerHTML = ''; // مسح المحتوى السابق
+
+                if (data.containers && data.containers.length > 0) {
+                    data.containers.forEach(container => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${container.container_number}</td>
+                            <td>${container.container_type_display}</td>
+                            <td>${container.weight ? container.weight + ' طن' : 'غير محدد'}</td>
+                        `;
+                        modalBody.appendChild(row);
+                    });
+                } else {
+                    modalBody.innerHTML = `
+                        <tr>
+                            <td colspan="3" class="text-center">لا توجد حاويات مرتبطة بهذا الأمر</td>
+                        </tr>
+                    `;
+                }
+
+                // عرض المودال
+                const containersModal = new bootstrap.Modal(document.getElementById('containersModal'));
+                containersModal.show();
+            })
+            .catch(error => {
+                console.error('Error fetching containers:', error);
+                alert('حدث خطأ أثناء جلب تفاصيل الحاويات');
+            });
+    }
+
+    // إضافة مستمع الحدث لأزرار الحذف
+    document.querySelectorAll('.delete-item').forEach(button => {
+        button.addEventListener('click', function() {
+            if (confirm('هل أنت متأكد من حذف هذا الإذن؟')) {
+                const itemType = this.dataset.itemType;
+                const itemId = this.dataset.itemId;
+                
+                // إنشاء نموذج للحذف
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = `/port/delete/${itemType}/${itemId}/`;
+                
+                // إضافة CSRF token
+                const csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = 'csrfmiddlewaretoken';
+                csrfInput.value = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                
+                form.appendChild(csrfInput);
+                document.body.appendChild(form);
+                form.submit();
+            }
+        });
+    });
+
+    // تعريف دالة حذف العناصر المحددة
+    function deleteSelectedOrders() {
+        const selectedOrders = Array.from(orderCheckboxes)
+            .filter(cb => cb.checked)
+            .map(cb => cb.value);
+            
+        if (selectedOrders.length === 0) {
+            alert('الرجاء تحديد أمر واحد على الأقل');
+            return;
+        }
+        
+        if (confirm(`هل أنت متأكد من حذف ${selectedOrders.length} أمر؟`)) {
+            // إرسال طلب لحذف الأذونات المحددة
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/port/delete-multiple-orders/';
+            
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrfmiddlewaretoken';
+            csrfInput.value = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            
+            const ordersInput = document.createElement('input');
+            ordersInput.type = 'hidden';
+            ordersInput.name = 'order_ids';
+            ordersInput.value = JSON.stringify(selectedOrders);
+            
+            form.appendChild(csrfInput);
+            form.appendChild(ordersInput);
+            document.body.appendChild(form);
+            form.submit();
+        }
+    }
+
+    // تعريف دالة تغيير حالة الأذونات المحددة
+    function bulkChangeStatus() {
+        const selectedOrders = Array.from(orderCheckboxes)
+            .filter(cb => cb.checked)
+            .map(cb => cb.value);
+            
+        if (selectedOrders.length === 0) {
+            alert('الرجاء تحديد أمر واحد على الأقل');
+            return;
+        }
+        
+        // تحديث قيمة الحقل المخفي في المودال
+        document.getElementById('selectedOrdersForStatus').value = selectedOrders.join(',');
+        
+        // عرض المودال
+        const bulkStatusModal = new bootstrap.Modal(document.getElementById('bulkStatusModal'));
+        bulkStatusModal.show();
+    }
+    
+    // تعريف دالة تحديث قائمة الأذونات
+    function refreshOrdersList() {
+        const refreshButton = document.getElementById('refreshOrders');
+        refreshButton.classList.add('rotating');
+        refreshButton.disabled = true;
+
+        fetch(window.location.href, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.text())
+        .then(html => {
+            // استبدال محتوى الجدول فقط
+            const parser = new DOMParser();
+            const newDocument = parser.parseFromString(html, 'text/html');
+            const newTable = newDocument.querySelector('.custom-table');
+            const currentTable = document.querySelector('.custom-table');
+            
+            if (newTable && currentTable) {
+                currentTable.innerHTML = newTable.innerHTML;
+            }
+
+            // إعادة تفعيل التلميحات
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+            
+            // إعادة تفعيل مستمعي الأحداث
+            attachEventListeners();
+        })
+        .catch(error => {
+            console.error('Error refreshing orders:', error);
+            alert('حدث خطأ أثناء تحديث البيانات');
+        })
+        .finally(() => {
+            refreshButton.classList.remove('rotating');
+            refreshButton.disabled = false;
+        });
+    }
+    
+    // دالة لإضافة مستمعي الأحداث للعناصر الجديدة
+    function attachEventListeners() {
+        // إعادة تفعيل مستمعي الأحداث لأزرار الحذف
+        document.querySelectorAll('.delete-item').forEach(button => {
+            button.addEventListener('click', function() {
+                if (confirm('هل أنت متأكد من حذف هذا الإذن؟')) {
+                    const itemType = this.dataset.itemType;
+                    const itemId = this.dataset.itemId;
+                    
+                    // إنشاء نموذج للحذف
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = `/port/delete/${itemType}/${itemId}/`;
+                    
+                    // إضافة CSRF token
+                    const csrfInput = document.createElement('input');
+                    csrfInput.type = 'hidden';
+                    csrfInput.name = 'csrfmiddlewaretoken';
+                    csrfInput.value = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                    
+                    form.appendChild(csrfInput);
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            });
+        });
+        
+        // إعادة تفعيل مستمعي الأحداث لأزرار عرض الحاويات
+        document.querySelectorAll('.view-containers').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const orderId = this.dataset.orderId;
+                showContainers(orderId);
+            });
+        });
+    }
+});
+</script>
+{% endblock %}

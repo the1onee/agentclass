@@ -1,0 +1,8 @@
+.edit-mode {
+    display: none;
+    width: 100%;
+}
+
+.view-mode {
+    display: inline;
+} 

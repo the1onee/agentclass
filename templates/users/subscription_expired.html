@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>انتهاء الاشتراك</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body { background: #f8f9fa; }
+        .expired-container { max-width: 400px; margin: 80px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 8px #ddd; padding: 32px; text-align: center; }
+        .whatsapp-btn { background: #25d366; color: #fff; border: none; border-radius: 5px; padding: 10px 24px; font-size: 18px; margin-top: 16px; display: inline-block; text-decoration: none; }
+        .whatsapp-btn:hover { background: #1ebe57; color: #fff; }
+        .logout-btn { background: #dc3545; color: #fff; border: none; border-radius: 5px; padding: 10px 24px; font-size: 18px; margin-top: 20px; display: inline-block; text-decoration: none; }
+        .logout-btn:hover { background: #b52a37; color: #fff; }
+    </style>
+</head>
+<body>
+    <div class="expired-container">
+        <h2 class="mb-3">انتهى اشتراكك</h2>
+        <p class="mb-4">اشتراكك انتهى. يمكنك التواصل مع المندوب عبر الواتساب لتجديد الاشتراك.</p>
+        <a href="https://wa.me/9627861625427" target="_blank" class="whatsapp-btn">
+            تواصل عبر الواتساب: 07861625427
+        </a>
+        <br>
+        <a href="{% url 'logout' %}" class="logout-btn">تسجيل الخروج من الحساب</a>
+    </div>
+</body>
+</html> 

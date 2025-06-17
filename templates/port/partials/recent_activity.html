@@ -1,0 +1,48 @@
+<div class="card dashboard-card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">آخر الرحلات</h5>
+        <a href="{% url 'port:trip_list' %}" class="btn btn-sm btn-outline-primary">عرض الكل</a>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover recent-trips-table">
+                <thead>
+                    <tr>
+                        <th>رقم الإذن</th>
+                        <th>تاريخ البداية</th>
+                        <th>الحاويات</th>
+                        <th>الحالة</th>
+                        <th>الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for trip in recent_trips %}
+                    <tr>
+                        <td>{{ trip.delivery_order.order_number }}</td>
+                        <td>{{ trip.start_time|date:"Y-m-d H:i" }}</td>
+                        <td>{{ trip.containers.count }}</td>
+                        <td>
+                            <span class="badge 
+                                {% if trip.status == 'pending' %}bg-warning
+                                {% elif trip.status == 'active' %}bg-success
+                                {% elif trip.status == 'completed' %}bg-info
+                                {% else %}bg-danger{% endif %}">
+                                {{ trip.get_status_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <a href="{% url 'port:trip_detail' trip.id %}" class="btn btn-sm btn-outline-info">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center">لا توجد رحلات حديثة</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div> 

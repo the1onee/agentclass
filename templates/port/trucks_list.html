@@ -1,0 +1,777 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}الشاحنات - نظام إدارة المندوب{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Top Navigation Bar -->
+    <div class="top-nav-bar">
+        <div class="container-fluid">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h1 class="dashboard-title">الشاحنات <small class="text-muted">إدارة أسطول النقل</small></h1>
+                </div>
+                <div class="col-md-6 text-end">
+                    <button type="button" class="btn btn-outline-primary mb-2 mb-md-0 me-2" id="refreshTrucks">
+                        <i class="fas fa-sync-alt"></i> تحديث
+                    </button>
+                    {% if status_filter != 'inactive' %}
+                    <a href="{% url 'port:trucks_list' %}?status=inactive{% if search_query %}&search={{ search_query }}{% endif %}" class="btn btn-outline-warning mb-2 mb-md-0 me-2">
+                        <i class="fas fa-truck"></i> عرض الشاحنات غير النشطة
+                    </a>
+                    {% endif %}
+                    {% if status_filter != 'active' %}
+                    <a href="{% url 'port:trucks_list' %}?status=active{% if search_query %}&search={{ search_query }}{% endif %}" class="btn btn-outline-success mb-2 mb-md-0 me-2">
+                        <i class="fas fa-truck"></i> عرض الشاحنات النشطة
+                    </a>
+                    {% endif %}
+                    {% if status_filter != 'all' %}
+                    <a href="{% url 'port:trucks_list' %}{% if search_query %}?search={{ search_query }}{% endif %}" class="btn btn-outline-secondary mb-2 mb-md-0">
+                        <i class="fas fa-list"></i> عرض جميع الشاحنات
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-2">
+                <div class="sidebar">
+                    <div class="user-profile text-center mb-4">
+                        <div class="avatar-circle">
+                            <span class="initials">{{ user.get_full_name|slice:":1" }}</span>
+                        </div>
+                        <h5 class="mt-3 mb-1">{{ user.get_full_name }}</h5>
+                        <p class="text-muted small">{{ user.email }}</p>
+                    </div>
+                    
+                    <div class="nav-menu">
+                        <a href="{% url 'port:home' %}" class="nav-link">
+                            <i class="fas fa-tachometer-alt"></i> لوحة التحكم
+                        </a>
+                        <a href="{% url 'port:delivery_orders' %}" class="nav-link">
+                            <i class="fas fa-file-alt"></i> أوامر التسليم
+                        </a>
+                        <a href="{% url 'port:trip_list' %}" class="nav-link">
+                            <i class="fas fa-truck-moving"></i> الرحلات
+                        </a>
+                        <a href="{% url 'port:containers_list' %}" class="nav-link">
+                            <i class="fas fa-box"></i> الحاويات
+                        </a>
+                        <a href="{% url 'port:drivers_list' %}" class="nav-link">
+                            <i class="fas fa-users"></i> السائقين
+                        </a>
+                        <a href="{% url 'port:trucks_list' %}" class="nav-link active">
+                            <i class="fas fa-truck"></i> الشاحنات
+                        </a>
+                        
+                        <div class="nav-section-title mt-4">الإضافات السريعة</div>
+                        <a href="{% url 'port:add_item' 'truck' %}" class="nav-link quick-add">
+                            <i class="fas fa-plus-circle"></i> إضافة شاحنة
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-10">
+                <!-- Date & Time -->
+                <div class="date-time-bar mb-4">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="current-date">
+                                <i class="far fa-calendar-alt"></i> <span id="currentDate"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <div class="current-time">
+                                <i class="far fa-clock"></i> <span id="currentTime"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Trucks Summary Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="stat-card bg-gradient-primary">
+                            <div class="stat-card-body">
+                                <div class="stat-card-icon">
+                                    <i class="fas fa-truck"></i>
+                                </div>
+                                <div class="stat-card-info">
+                                    <h5 class="stat-card-title">إجمالي الشاحنات</h5>
+                                    <div class="stat-card-value">{{ trucks|length }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="stat-card bg-gradient-success">
+                            <div class="stat-card-body">
+                                <div class="stat-card-icon">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <div class="stat-card-info">
+                                    <h5 class="stat-card-title">الشاحنات النشطة</h5>
+                                    <div class="stat-card-value">{{ active_trucks }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="stat-card bg-gradient-danger">
+                            <div class="stat-card-body">
+                                <div class="stat-card-icon">
+                                    <i class="fas fa-times-circle"></i>
+                                </div>
+                                <div class="stat-card-info">
+                                    <h5 class="stat-card-title">الشاحنات غير النشطة</h5>
+                                    <div class="stat-card-value">{{ inactive_trucks }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Trucks Card -->
+                <div class="card main-card shadow-lg animate__animated animate__fadeIn">
+                    <div class="card-header d-flex justify-content-between align-items-center bg-gradient-primary text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-truck me-2"></i> قائمة الشاحنات
+                        </h5>
+                        <a href="{% url 'port:add_item' 'truck' %}" class="btn btn-light btn-sm">
+                            <i class="fas fa-plus me-1"></i> إضافة شاحنة جديدة
+                        </a>
+                    </div>
+                    
+                    <div class="card-body">
+                        <!-- Search and Filter -->
+                        <div class="search-filter-section mb-4">
+                            <form method="GET" action="{% url 'port:trucks_list' %}">
+                                {% if status_filter != 'all' %}
+                                <input type="hidden" name="status" value="{{ status_filter }}">
+                                {% endif %}
+                                <div class="row g-3">
+                                    <div class="col-md-8">
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-light">
+                                                <i class="fas fa-search"></i>
+                                            </span>
+                                            <input type="text" name="search" id="truckSearchInput" class="form-control" 
+                                                   placeholder="بحث عن رقم اللوحة أو المحافظة..." value="{{ search_query }}">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <button type="submit" class="btn btn-primary w-100">
+                                            <i class="fas fa-search me-1"></i> بحث
+                                        </button>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <a href="{% url 'port:trucks_list' %}{% if status_filter != 'all' %}?status={{ status_filter }}{% endif %}" class="btn btn-secondary w-100">
+                                            <i class="fas fa-times me-1"></i> مسح
+                                        </a>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                        
+                        <!-- Bulk Actions -->
+                        <div class="bulk-actions mb-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="selectAllTrucks">
+                                        <label class="form-check-label" for="selectAllTrucks">
+                                            تحديد الكل
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="bulk-actions-buttons" style="display: none;">
+                                    <span class="me-2">تم تحديد <span id="selectedTrucksCount">0</span> شاحنة</span>
+                                    <button class="btn btn-sm btn-warning" id="bulkStatus">
+                                        <i class="fas fa-toggle-on me-1"></i> تغيير الحالة
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" id="bulkDelete">
+                                        <i class="fas fa-trash me-1"></i> حذف
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Trucks Table -->
+                        <div class="table-responsive">
+                            <table class="table custom-table">
+                                <thead>
+                                    <tr>
+                                        <th width="40">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="selectAllTrucksHeader">
+                                            </div>
+                                        </th>
+                                        <th>رقم اللوحة</th>
+                                        <th>المحافظة</th>
+                                        <th>النوع</th>
+                                        <th>الحالة</th>
+                                        <th>الإجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for truck in trucks %}
+                                    <tr class="table-row-hover">
+                                        <td>
+                                            <div class="form-check">
+                                                <input class="form-check-input truck-checkbox" 
+                                                       type="checkbox" 
+                                                       value="{{ truck.id }}"
+                                                       data-truck-plate="{{ truck.plate_number }}">
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="truck-plate" data-bs-toggle="tooltip" title="انقر للتفاصيل">
+                                                {{ truck.plate_number }}
+                                            </span>
+                                        </td>
+                                        <td>{{ truck.get_governorate_display }}</td>
+                                        <td>
+                                            <span class="badge rounded-pill 
+                                                {% if truck.truck_type == 'FLATBED' %}bg-primary
+                                                {% elif truck.truck_type == 'CONTAINER' %}bg-success
+                                                {% elif truck.truck_type == 'REFRIGERATED' %}bg-info
+                                                {% else %}bg-secondary{% endif %}">
+                                                {{ truck.get_truck_type_display }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="status-badge {% if truck.is_active %}badge-success{% else %}badge-danger{% endif %}">
+                                                {{ truck.is_active|yesno:"نشط,غير نشط" }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="action-buttons">
+                                                <a href="#" class="btn btn-sm btn-info view-truck-details" 
+                                                   data-truck-id="{{ truck.id }}" data-bs-toggle="tooltip" title="عرض">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                <a href="{% url 'port:edit_truck' truck.plate_number %}" class="btn btn-sm btn-warning" 
+                                                   data-bs-toggle="tooltip" title="تعديل">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <a href="{% url 'port:delete_truck' truck.id %}" class="btn btn-sm btn-danger delete-btn" 
+                                                   data-bs-toggle="tooltip" title="حذف">
+                                                    <i class="fas fa-trash"></i>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="6">
+                                            <div class="empty-state">
+                                                <div class="empty-state-icon">
+                                                    <i class="fas fa-truck"></i>
+                                                </div>
+                                                <h5>لا توجد شاحنات</h5>
+                                                <p class="text-muted">قم بإضافة شاحنات جديدة للبدء في إدارة أسطول النقل الخاص بك</p>
+                                                <a href="{% url 'port:add_item' 'truck' %}" class="btn btn-primary">
+                                                    <i class="fas fa-plus me-1"></i> إضافة شاحنة جديدة
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* تنسيقات عامة */
+.dashboard-container {
+    font-family: 'Cairo', sans-serif;
+}
+
+/* شريط التنقل العلوي */
+.top-nav-bar {
+    background-color: #fff;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    padding: 15px 0;
+    margin-bottom: 20px;
+}
+
+.dashboard-title {
+    font-weight: 700;
+    color: #333;
+    margin: 0;
+}
+
+.dashboard-title small {
+    font-weight: 400;
+    font-size: 0.6em;
+}
+
+/* الشريط الجانبي */
+.sidebar {
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    padding: 20px;
+    height: calc(100vh - 100px);
+    position: sticky;
+    top: 20px;
+}
+
+.avatar-circle {
+    width: 70px;
+    height: 70px;
+    background-color: #6366f1;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+}
+
+.initials {
+    font-size: 2rem;
+    color: white;
+    font-weight: 600;
+}
+
+.nav-menu {
+    margin-top: 20px;
+}
+
+.nav-link {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    border-radius: 8px;
+    color: #555;
+    margin-bottom: 5px;
+    transition: all 0.3s ease;
+}
+
+.nav-link i {
+    margin-left: 10px;
+    font-size: 1.1rem;
+    width: 20px;
+    text-align: center;
+}
+
+.nav-link:hover {
+    background-color: #f5f5f5;
+    color: #6366f1;
+    transform: translateX(-5px);
+}
+
+.nav-link.active {
+    background-color: #6366f1;
+    color: white;
+}
+
+.nav-section-title {
+    font-size: 0.8rem;
+    color: #999;
+    margin-bottom: 10px;
+    padding-right: 15px;
+}
+
+.quick-add {
+    background-color: #f0f1fe;
+    color: #6366f1;
+}
+
+.quick-add:hover {
+    background-color: #e0e7ff;
+}
+
+/* شريط التاريخ والوقت */
+.date-time-bar {
+    background-color: #f8f9fa;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 20px;
+}
+
+.current-date, .current-time {
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.current-date i, .current-time i {
+    margin-left: 5px;
+    color: #6366f1;
+}
+
+/* بطاقات الإحصائيات */
+.stat-card {
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+    margin-bottom: 20px;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.bg-gradient-primary {
+    background: linear-gradient(45deg, #4f46e5, #6366f1);
+}
+
+.bg-gradient-success {
+    background: linear-gradient(45deg, #10b981, #34d399);
+}
+
+.bg-gradient-danger {
+    background: linear-gradient(45deg, #ef4444, #f87171);
+}
+
+.stat-card-body {
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    color: white;
+}
+
+.stat-card-icon {
+    width: 60px;
+    height: 60px;
+    background-color: rgba(255,255,255,0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 15px;
+}
+
+.stat-card-icon i {
+    font-size: 1.5rem;
+}
+
+.stat-card-info {
+    flex: 1;
+}
+
+.stat-card-title {
+    font-size: 0.9rem;
+    margin-bottom: 5px;
+    opacity: 0.9;
+}
+
+.stat-card-value {
+    font-size: 1.8rem;
+    font-weight: 700;
+}
+
+/* البطاقة الرئيسية */
+.main-card {
+    border-radius: 10px;
+    overflow: hidden;
+    border: none;
+    margin-bottom: 30px;
+}
+
+.main-card .card-header {
+    padding: 15px 20px;
+    border-bottom: none;
+}
+
+.main-card .card-body {
+    padding: 20px;
+}
+
+/* قسم البحث والتصفية */
+.search-filter-section {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+}
+
+.input-group-text {
+    border: none;
+}
+
+.form-control, .form-select {
+    border: none;
+    padding: 10px 15px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.form-control:focus, .form-select:focus {
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+}
+
+/* جدول الشاحنات */
+.custom-table {
+    margin-bottom: 0;
+}
+
+.custom-table thead th {
+    background-color: #f8f9fa;
+    color: #555;
+    font-weight: 600;
+    border: none;
+    padding: 12px 15px;
+}
+
+.table-row-hover {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.table-row-hover:hover {
+    background-color: #f8f9fa;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.custom-table tbody td {
+    border: none;
+    padding: 15px;
+    vertical-align: middle;
+}
+
+.truck-plate {
+    font-weight: 600;
+    color: #6366f1;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.truck-plate:hover {
+    color: #4f46e5;
+    text-decoration: underline;
+}
+
+/* بادجات الحالة */
+.status-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-weight: 500;
+    font-size: 0.85rem;
+}
+
+.badge-success {
+    background-color: #d1fae5;
+    color: #059669;
+}
+
+.badge-danger {
+    background-color: #fee2e2;
+    color: #dc2626;
+}
+
+/* أزرار الإجراءات */
+.action-buttons .btn {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    margin-left: 5px;
+}
+
+.action-buttons .btn:hover {
+    transform: translateY(-2px);
+}
+
+/* حالة فارغة */
+.empty-state {
+    text-align: center;
+    padding: 30px;
+}
+
+.empty-state-icon {
+    width: 80px;
+    height: 80px;
+    background-color: #f0f1fe;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+}
+
+.empty-state-icon i {
+    font-size: 2rem;
+    color: #6366f1;
+}
+
+/* تأثير الدوران لزر التحديث */
+.rotating {
+    animation: rotate 1s linear infinite;
+}
+
+@keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* تأثيرات الانتقال */
+.fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Current Date & Time
+    function updateDateTime() {
+        const now = new Date();
+        const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit' };
+        
+        document.getElementById('currentDate').textContent = now.toLocaleDateString('ar-SA', dateOptions);
+        document.getElementById('currentTime').textContent = now.toLocaleTimeString('ar-SA', timeOptions);
+    }
+    
+    updateDateTime();
+    setInterval(updateDateTime, 1000);
+    
+    // تحديث الصفحة
+    document.getElementById('refreshTrucks').addEventListener('click', function() {
+        this.classList.add('rotating');
+        setTimeout(() => {
+            window.location.reload();
+        }, 500);
+    });
+    
+    // تفعيل التلميحات (Tooltips)
+    try {
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    } catch (e) {
+        console.error('Error initializing tooltips:', e);
+    }
+    
+    // تفعيل خاصية تحديد جميع الشاحنات
+    const selectAllTrucks = document.getElementById('selectAllTrucks');
+    const selectAllTrucksHeader = document.getElementById('selectAllTrucksHeader');
+    const truckCheckboxes = document.querySelectorAll('.truck-checkbox');
+    const bulkActionsButtons = document.querySelector('.bulk-actions-buttons');
+    
+    if (selectAllTrucks && selectAllTrucksHeader) {
+        function updateSelectAllCheckboxes(isChecked) {
+            selectAllTrucks.checked = isChecked;
+            selectAllTrucksHeader.checked = isChecked;
+        }
+        
+        function handleSelectAll() {
+            const isChecked = this.checked;
+            updateSelectAllCheckboxes(isChecked);
+            
+            truckCheckboxes.forEach(checkbox => {
+                checkbox.checked = isChecked;
+            });
+            
+            updateBulkActionsVisibility();
+        }
+        
+        selectAllTrucks.addEventListener('change', handleSelectAll);
+        selectAllTrucksHeader.addEventListener('change', handleSelectAll);
+        
+        truckCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                updateBulkActionsVisibility();
+                
+                // تحديث حالة "تحديد الكل" إذا تم تحديد جميع الشاحنات
+                const allChecked = Array.from(truckCheckboxes).every(cb => cb.checked);
+                updateSelectAllCheckboxes(allChecked);
+            });
+        });
+        
+        function updateBulkActionsVisibility() {
+            const anyChecked = Array.from(truckCheckboxes).some(cb => cb.checked);
+            bulkActionsButtons.style.display = anyChecked ? 'block' : 'none';
+            
+            // تحديث عدد الشاحنات المحددة
+            const selectedCount = Array.from(truckCheckboxes).filter(cb => cb.checked).length;
+            document.getElementById('selectedTrucksCount').textContent = selectedCount;
+        }
+    }
+});
+</script>
+
+<!-- Truck Details Modal -->
+<div class="modal fade" id="truckDetailsModal" tabindex="-1" aria-labelledby="truckDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-gradient-primary text-white">
+                <h5 class="modal-title" id="truckDetailsModalLabel">تفاصيل الشاحنة</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="truck-details-content">
+                    <!-- سيتم ملء هذا المحتوى ديناميكيًا -->
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">جاري التحميل...</span>
+                        </div>
+                        <p class="mt-3">جاري تحميل تفاصيل الشاحنة...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <a href="#" class="btn btn-primary edit-truck-link">
+                    <i class="fas fa-edit me-1"></i> تعديل الشاحنة
+                </a>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Status Modal -->
+<div class="modal fade" id="bulkStatusModal" tabindex="-1" aria-labelledby="bulkStatusModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-gradient-warning text-white">
+                <h5 class="modal-title" id="bulkStatusModalLabel">تغيير حالة الشاحنات</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="/port/trucks/bulk-status/" method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="trucks" id="selectedTrucksForStatus">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="statusSelect" class="form-label">اختر الحالة الجديدة</label>
+                        <select class="form-select" id="statusSelect" name="status" required>
+                            <option value="">-- اختر الحالة --</option>
+                            <option value="active">نشط</option>
+                            <option value="inactive">غير نشط</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-warning">تغيير الحالة</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

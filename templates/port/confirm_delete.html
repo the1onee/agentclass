@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>تأكيد الحذف</h2>
+    <p>هل أنت متأكد من رغبتك في حذف الرحلة "{{ trip }}"؟</p>
+    
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">نعم، احذف</button>
+        <a href="{% url 'port:edit_trip' trip.id %}" class="btn btn-secondary">إلغاء</a>
+    </form>
+</div>
+{% endblock %} 

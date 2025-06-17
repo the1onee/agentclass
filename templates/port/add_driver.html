@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block content %}
+    <h2>إضافة سائق جديد</h2>
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+    
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="id_license_number">رقم الرخصة:</label>
+            {{ form.license_number }}
+            {{ form.license_number.errors }}
+        </div>
+        <div class="form-group">
+            <label for="id_name">اسم السائق:</label>
+            {{ form.name }}
+            {{ form.name.errors }}
+        </div>
+        <div class="form-group">
+            <label for="id_phone_number">رقم الهاتف:</label>
+            {{ form.phone_number }}
+            {{ form.phone_number.errors }}
+        </div>
+        <button type="submit" class="btn btn-primary">إضافة السائق</button>
+    </form>
+{% endblock %} 

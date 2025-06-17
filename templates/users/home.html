@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="welcome-container">
+    <div class="welcome-card">
+        <div class="welcome-header">
+            <h1 class="welcome-title">أهلاً وسهلاً {{ user.get_full_name }}! 👋</h1>
+            <p class="welcome-subtitle">يسعدنا رؤيتك مجدداً</p>
+        </div>
+        
+        <div class="user-info">
+            <div class="user-type">
+                <span class="user-label">نوع المستخدم:</span>
+                <span class="user-value">{{ user.get_user_type_display }}</span>
+            </div>
+            
+            <div class="login-info">
+                <p>آخر تسجيل دخول: {% now "l، j F Y" %}</p>
+            </div>
+        </div>
+        
+        <div class="welcome-message">
+            <p>نتمنى لك يوماً رائعاً مليئاً بالإنجازات!</p>
+            <p class="quote">"النجاح هو مجموع جهود صغيرة تتكرر يوماً بعد يوم"</p>
+        </div>
+        
+        <div class="welcome-footer">
+            <p>استكشف النظام واستفد من جميع المميزات المتاحة لك</p>
+        </div>
+    </div>
+</div>
+
+<style>
+    .welcome-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 70vh;
+        padding: 20px;
+        direction: rtl;
+    }
+    
+    .welcome-card {
+        background: linear-gradient(135deg, #ffffff, #f5f7fa);
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        padding: 40px;
+        max-width: 800px;
+        width: 100%;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+    
+    .welcome-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+    }
+    
+    .welcome-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 5px;
+        background: linear-gradient(90deg, #4776E6, #8E54E9);
+    }
+    
+    .welcome-title {
+        color: #333;
+        font-size: 2.5rem;
+        margin-bottom: 10px;
+    }
+    
+    .welcome-subtitle {
+        color: #666;
+        font-size: 1.2rem;
+        margin-bottom: 30px;
+    }
+    
+    .user-info {
+        background-color: rgba(71, 118, 230, 0.05);
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .user-type {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 15px;
+    }
+    
+    .user-label {
+        font-weight: bold;
+        color: #555;
+    }
+    
+    .user-value {
+        color: #4776E6;
+        font-weight: bold;
+    }
+    
+    .welcome-message {
+        margin-bottom: 30px;
+        font-size: 1.1rem;
+        line-height: 1.6;
+    }
+    
+    .quote {
+        font-style: italic;
+        color: #8E54E9;
+        margin-top: 15px;
+        font-size: 1rem;
+    }
+    
+    .welcome-footer {
+        color: #777;
+        font-size: 0.9rem;
+        border-top: 1px solid #eee;
+        padding-top: 20px;
+    }
+    
+    @media (max-width: 768px) {
+        .welcome-card {
+            padding: 25px;
+        }
+        
+        .welcome-title {
+            font-size: 2rem;
+        }
+    }
+</style>
+{% endblock %} 

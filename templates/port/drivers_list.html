@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}قائمة السائقين{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Top Navigation Bar -->
+    <div class="top-nav-bar">
+        <div class="container-fluid">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h1 class="dashboard-title">قائمة السائقين <small class="text-muted">إدارة السائقين</small></h1>
+                </div>
+                <div class="col-md-6 text-end">
+                    <div class="btn-group">
+                        <a href="{% url 'port:add_item' 'driver' %}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> إضافة سائق جديد
+                        </a>
+                        <a href="{% url 'port:home' %}" class="btn btn-secondary">
+                            <i class="fas fa-home"></i> الرئيسية
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-2">
+                {% include 'port/partials/sidebar.html' %}
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-10">
+                <!-- إحصائيات السائقين -->
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="stat-card bg-gradient-primary">
+                            <div class="stat-card-body">
+                                <div class="stat-card-icon">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                                <div class="stat-card-info">
+                                    <h5 class="stat-card-title">إجمالي السائقين</h5>
+                                    <div class="stat-card-value">{{ total_count }}</div>
+                                    <div class="stat-card-subtitle">إجمالي عدد السائقين المسجلين</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="stat-card bg-gradient-success">
+                            <div class="stat-card-body">
+                                <div class="stat-card-icon">
+                                    <i class="fas fa-user-check"></i>
+                                </div>
+                                <div class="stat-card-info">
+                                    <h5 class="stat-card-title">السائقين النشطين</h5>
+                                    <div class="stat-card-value">{{ active_count }}</div>
+                                    <div class="stat-card-subtitle">عدد السائقين النشطين حالياً</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="stat-card bg-gradient-danger">
+                            <div class="stat-card-body">
+                                <div class="stat-card-icon">
+                                    <i class="fas fa-user-times"></i>
+                                </div>
+                                <div class="stat-card-info">
+                                    <h5 class="stat-card-title">السائقين غير النشطين</h5>
+                                    <div class="stat-card-value">{{ inactive_count }}</div>
+                                    <div class="stat-card-subtitle">عدد السائقين غير النشطين حالياً</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- بحث وفلترة -->
+                <div class="card dashboard-card mb-4">
+                    <div class="card-header">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <form method="get" class="search-form">
+                                    <div class="input-group">
+                                        <input type="text" name="q" class="form-control" placeholder="بحث عن سائق..." value="{{ request.GET.q|default:'' }}">
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-search"></i>
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="col-md-6 text-end">
+                                <div class="btn-group">
+                                    <a href="?status=active" class="btn btn-outline-success {% if request.GET.status == 'active' %}active{% endif %}">نشط</a>
+                                    <a href="?status=inactive" class="btn btn-outline-danger {% if request.GET.status == 'inactive' %}active{% endif %}">غير نشط</a>
+                                    <a href="{% url 'port:drivers_list' %}" class="btn btn-outline-primary">الكل</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- جدول السائقين -->
+                <div class="card dashboard-card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>الاسم</th>
+                                        <th>رقم الهاتف</th>
+                                        <th>رقم الهوية</th>
+                                        <th>الحالة</th>
+                                        <th>تاريخ الإضافة</th>
+                                        <th>الإجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for driver in drivers %}
+                                    <tr>
+                                        <td>{{ forloop.counter }}</td>
+                                        <td>{{ driver.name }}</td>
+                                        <td>{{ driver.phone_number }}</td>
+                                        <td>{{ driver.id_number }}</td>
+                                        <td>
+                                            <span class="badge {% if driver.is_active %}bg-success{% else %}bg-danger{% endif %}">
+                                                {% if driver.is_active %}نشط{% else %}غير نشط{% endif %}
+                                            </span>
+                                        </td>
+                                        <td>{{ driver.created_at|date:"Y-m-d" }}</td>
+                                        <td>
+                                            <div class="btn-group">
+                                                <a href="{% url 'port:edit_driver' driver.id %}" class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-edit"></i> تعديل
+                                                </a>
+                                                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteDriverModal{{ driver.id }}">
+                                                    <i class="fas fa-trash"></i> حذف
+                                                </button>
+                                            </div>
+                                            
+                                            <!-- Modal for Delete Confirmation -->
+                                            <div class="modal fade" id="deleteDriverModal{{ driver.id }}" tabindex="-1" aria-hidden="true">
+                                                <div class="modal-dialog">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title">تأكيد الحذف</h5>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                        </div>
+                                                        <div class="modal-body">
+                                                            هل أنت متأكد من حذف السائق: {{ driver.name }}؟
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                                                            <a href="{% url 'port:delete_driver' driver.id %}" class="btn btn-danger">حذف</a>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="7" class="text-center">لا يوجد سائقين</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        {% include 'port/partials/pagination.html' with page_obj=drivers %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

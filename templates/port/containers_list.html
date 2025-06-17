@@ -1,0 +1,1147 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}قائمة الحاويات - نظام إدارة المندوب{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Top Navigation Bar -->
+    <div class="top-nav-bar">
+        <div class="container-fluid">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h1 class="dashboard-title">قائمة الحاويات <small class="text-muted">إدارة الحاويات</small></h1>
+                </div>
+                <div class="col-md-6 text-end">
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-outline-primary" id="refreshContainers">
+                            <i class="fas fa-sync-alt"></i> تحديث
+                        </button>
+                       
+                        
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-2">
+                <div class="sidebar">
+                    <div class="user-profile text-center mb-4">
+                        <div class="avatar-circle">
+                            <span class="initials">{{ user.get_full_name|slice:":1" }}</span>
+                        </div>
+                        <h5 class="mt-3 mb-1">{{ user.get_full_name }}</h5>
+                        <p class="text-muted small">{{ user.email }}</p>
+                    </div>
+                    
+                    <div class="nav-menu">
+                        <a href="{% url 'port:home' %}" class="nav-link">
+                            <i class="fas fa-tachometer-alt"></i> لوحة التحكم
+                        </a>
+                        <a href="{% url 'port:delivery_orders' %}" class="nav-link">
+                            <i class="fas fa-file-alt"></i> أوامر التسليم
+                        </a>
+                        <a href="{% url 'port:trip_list' %}" class="nav-link">
+                            <i class="fas fa-truck-moving"></i> الرحلات
+                        </a>
+                        <a href="{% url 'port:containers_list' %}" class="nav-link active">
+                            <i class="fas fa-box"></i> الحاويات
+                        </a>
+                        <a href="{% url 'port:drivers_list' %}" class="nav-link">
+                            <i class="fas fa-users"></i> السائقين
+                        </a>
+                        <a href="{% url 'port:trucks_list' %}" class="nav-link">
+                            <i class="fas fa-truck"></i> الشاحنات
+                        </a>
+                        
+                        <div class="nav-section-title mt-4">الإضافات السريعة</div>
+                        <a href="{% url 'port:add_item' 'container' %}" class="nav-link quick-add">
+                            <i class="fas fa-plus-circle"></i> إضافة حاوية
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-10">
+                <!-- Date & Time -->
+                <div class="date-time-bar mb-4">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="current-date">
+                                <i class="far fa-calendar-alt"></i> <span id="currentDate"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <div class="current-time">
+                                <i class="far fa-clock"></i> <span id="currentTime"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Containers Card -->
+                <div class="card main-card shadow-lg animate__animated animate__fadeIn">
+                    <div class="card-header d-flex justify-content-between align-items-center bg-gradient-primary text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-box me-2"></i> قائمة الحاويات
+                        </h5>
+                        <a href="{% url 'port:add_item' 'container' %}" class="btn btn-light btn-sm">
+                            <i class="fas fa-plus me-1"></i> إضافة حاوية جديدة
+                        </a>
+                    </div>
+                    
+                    <div class="card-body">
+                        <!-- Search and Filter -->
+                        <div class="search-filter-section mb-4">
+                            <form method="get" class="row g-3">
+                                <div class="col-md-4">
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light">
+                                            <i class="fas fa-search"></i>
+                                        </span>
+                                        <input type="text" name="search" class="form-control" 
+                                               placeholder="بحث عن رقم الحاوية..." value="{{ search_query }}">
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <select name="status" class="form-select">
+                                        <option value="">كل الحالات</option>
+                                        {% for value, label in status_choices %}
+                                        <option value="{{ value }}" {% if value == status_filter %}selected{% endif %}>
+                                            {{ label }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <select name="type" class="form-select">
+                                        <option value="">كل الأنواع</option>
+                                        {% for value, label in container_types %}
+                                        <option value="{{ value }}" {% if value == type_filter %}selected{% endif %}>
+                                            {{ label }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <button type="submit" class="btn btn-primary w-100">
+                                        <i class="fas fa-filter me-1"></i> تصفية
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                        
+                        <!-- Bulk Actions -->
+                        <div class="bulk-actions mb-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="selectAllContainers">
+                                        <label class="form-check-label" for="selectAllContainers">
+                                            تحديد الكل
+                                        </label>
+                                    </div>
+                                </div>
+                               
+                            </div>
+                        </div>
+
+                        <!-- Containers List -->
+                        <div class="containers-grid">
+                            {% for container in page_obj %}
+                            <div class="container-card animate__animated animate__fadeInUp" data-container-id="{{ container.id }}">
+                                <div class="container-card-header">
+                                    <div class="form-check">
+                                        <input class="form-check-input container-checkbox" type="checkbox" value="{{ container.id }}">
+                                    </div>
+                                    <span class="container-number" data-bs-toggle="tooltip" data-bs-placement="top" title="انقر لعرض التفاصيل">
+                                        <a href="{% url 'port:edit_container' container.id %}">
+                                        {{ container.container_number }}
+                                    </span>
+                                    <span class="container-badge 
+                                        {% if container.status == 'LOADING' %}badge-primary
+                                        {% elif container.status == 'EMPTY' %}badge-secondary
+                                        {% elif container.status == 'GENERAL_CARGO' %}badge-warning
+                                        {% else %}badge-info{% endif %}">
+                                        {{ container.get_status_display }}
+                                    </span>
+                                </div>
+                                <div class="container-card-body">
+                                    <div class="container-info">
+                                        <div class="info-item">
+                                            <span class="info-label">النوع:</span>
+                                            <span class="info-value">{{ container.get_container_type_display }}</span>
+                                        </div>
+                                        <div class="info-item">
+                                            <span class="info-label">الوزن:</span>
+                                            <span class="info-value">{{ container.weight|default:"غير محدد" }} طن</span>
+                                        </div>
+                                        <div class="info-item">
+                                            <span class="info-label">السائق:</span>
+                                            <span class="info-value">{{ container.driver.name|default:"غير محدد" }}</span>
+                                        </div>
+                                        <div class="info-item">
+                                            <span class="info-label">الشاحنة:</span>
+                                            <span class="info-value">{{ container.truck.plate_number|default:"غير محدد" }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="container-card-footer">
+                                    <a href="{% url 'port:edit_container' container.id %}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-edit"></i> تعديل
+                                    </a>
+                                   
+                                </div>
+                            </div>
+                            {% empty %}
+                            <div class="empty-state text-center py-5">
+                                <div class="empty-state-icon">
+                                    <i class="fas fa-box-open"></i>
+                                </div>
+                                <h4>لا توجد حاويات</h4>
+                                <p class="text-muted">لم يتم العثور على حاويات تطابق معايير البحث</p>
+                                <a href="{% url 'port:add_item' 'container' %}" class="btn btn-primary mt-3">
+                                    <i class="fas fa-plus me-1"></i> إضافة حاوية جديدة
+                                </a>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Pagination -->
+                        {% if page_obj.paginator.num_pages > 1 %}
+                        <nav class="mt-4" aria-label="Page navigation">
+                            <ul class="pagination justify-content-center">
+                                {% if page_obj.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page=1&search={{ search_query }}&status={{ status_filter }}&type={{ type_filter }}" aria-label="First">
+                                        <span aria-hidden="true">&laquo;&laquo;</span>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}&search={{ search_query }}&status={{ status_filter }}&type={{ type_filter }}" aria-label="Previous">
+                                        <span aria-hidden="true">&laquo;</span>
+                                    </a>
+                                </li>
+                                {% endif %}
+
+                                {% for num in page_obj.paginator.page_range %}
+                                    {% if page_obj.number == num %}
+                                        <li class="page-item active">
+                                            <span class="page-link">{{ num }}</span>
+                                        </li>
+                                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ num }}&search={{ search_query }}&status={{ status_filter }}&type={{ type_filter }}">{{ num }}</a>
+                                        </li>
+                                    {% endif %}
+                                {% endfor %}
+
+                                {% if page_obj.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.next_page_number }}&search={{ search_query }}&status={{ status_filter }}&type={{ type_filter }}" aria-label="Next">
+                                        <span aria-hidden="true">&raquo;</span>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}&search={{ search_query }}&status={{ status_filter }}&type={{ type_filter }}" aria-label="Last">
+                                        <span aria-hidden="true">&raquo;&raquo;</span>
+                                    </a>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Container Details Modal -->
+<div class="modal fade" id="containerDetailsModal" tabindex="-1" aria-labelledby="containerDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-gradient-primary text-white">
+                <h5 class="modal-title" id="containerDetailsModalLabel">تفاصيل الحاوية</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="container-details-content">
+                    <!-- سيتم ملء هذا المحتوى ديناميكيًا -->
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">جاري التحميل...</span>
+                        </div>
+                        <p class="mt-3">جاري تحميل تفاصيل الحاوية...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <a href="#" class="btn btn-primary edit-container-link">
+                    <i class="fas fa-edit me-1"></i> تعديل الحاوية
+                </a>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Assign Modal -->
+<div class="modal fade" id="bulkAssignModal" tabindex="-1" aria-labelledby="bulkAssignModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-gradient-primary text-white">
+                <h5 class="modal-title" id="bulkAssignModalLabel">ربط الحاويات بإذن تسليم</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="/port/containers/bulk-assign/" method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="containers" id="selectedContainersIds">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="deliveryOrderSelect" class="form-label">اختر إذن التسليم</label>
+                        <select class="form-select" id="deliveryOrderSelect" name="delivery_order" required>
+                            <option value="">-- اختر إذن التسليم --</option>
+                            <!-- يمكن ملء هذه القائمة ديناميكيًا -->
+                        </select>
+                    </div>
+                    <p class="text-muted">
+                        سيتم ربط <span id="selectedContainersCount">0</span> حاوية بإذن التسليم المحدد.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">تأكيد الربط</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Status Modal -->
+<div class="modal fade" id="bulkStatusModal" tabindex="-1" aria-labelledby="bulkStatusModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-gradient-warning text-white">
+                <h5 class="modal-title" id="bulkStatusModalLabel">تغيير حالة الحاويات</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="/port/containers/bulk-status/" method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="containers" id="selectedContainersForStatus">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="statusSelect" class="form-label">اختر الحالة الجديدة</label>
+                        <select class="form-select" id="statusSelect" name="status" required>
+                            <option value="">-- اختر الحالة --</option>
+                            {% for value, label in status_choices %}
+                            <option value="{{ value }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-warning">تغيير الحالة</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Dashboard Container */
+.dashboard-container {
+    min-height: 100vh;
+    background-color: #f8f9fa;
+}
+
+/* Top Navigation Bar */
+.top-nav-bar {
+    background-color: #fff;
+    padding: 15px 0;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.dashboard-title {
+    font-size: 1.5rem;
+    margin-bottom: 0;
+    color: #333;
+}
+
+/* Sidebar */
+.sidebar {
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    padding: 20px;
+    height: calc(100vh - 100px);
+    position: sticky;
+    top: 20px;
+}
+
+.avatar-circle {
+    width: 70px;
+    height: 70px;
+    background-color: #6366f1;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0 auto;
+}
+
+.initials {
+    font-size: 28px;
+    color: white;
+    font-weight: bold;
+}
+
+.nav-menu {
+    margin-top: 20px;
+}
+
+.nav-link {
+    display: flex;
+    align-items: center;
+    padding: 10px 15px;
+    border-radius: 8px;
+    color: #555;
+    transition: all 0.3s;
+    margin-bottom: 5px;
+}
+
+.nav-link i {
+    margin-left: 10px;
+    width: 20px;
+    text-align: center;
+}
+
+.nav-link:hover {
+    background-color: #f0f1fe;
+    color: #6366f1;
+}
+
+.nav-link.active {
+    background-color: #6366f1;
+    color: white;
+}
+
+.nav-section-title {
+    font-size: 0.8rem;
+    color: #888;
+    padding: 0 15px;
+    margin-bottom: 10px;
+}
+
+.quick-add {
+    background-color: #f0f1fe;
+    color: #6366f1;
+}
+
+.quick-add:hover {
+    background-color: #e0e1fd;
+}
+
+/* Date & Time Bar */
+.date-time-bar {
+    background-color: #fff;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.current-date, .current-time {
+    font-size: 1rem;
+    color: #555;
+}
+
+.current-date i, .current-time i {
+    color: #6366f1;
+    margin-left: 5px;
+}
+
+/* Main Card */
+.main-card {
+    border-radius: 10px;
+    overflow: hidden;
+    border: none;
+}
+
+.card-header {
+    padding: 15px 20px;
+}
+
+.bg-gradient-primary {
+    background: linear-gradient(45deg, #6366f1, #818cf8);
+}
+
+/* Search and Filter Section */
+.search-filter-section {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+}
+
+/* Containers Grid */
+.containers-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.container-card {
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    transition: all 0.3s ease;
+    overflow: hidden;
+    border: 1px solid #eee;
+}
+
+.container-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.container-card-header {
+    padding: 15px;
+    background-color: #f8f9fa;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #eee;
+}
+
+.container-number {
+    font-weight: bold;
+    font-size: 1.1rem;
+    cursor: pointer;
+    color: #333;
+}
+
+.container-number:hover {
+    color: #6366f1;
+    text-decoration: underline;
+}
+
+.container-badge {
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.badge-primary {
+    background-color: #6366f1;
+    color: white;
+}
+
+.badge-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.badge-warning {
+    background-color: #f59e0b;
+    color: white;
+}
+
+.badge-info {
+    background-color: #0ea5e9;
+    color: white;
+}
+
+.container-card-body {
+    padding: 15px;
+}
+
+.container-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.info-label {
+    font-size: 0.8rem;
+    color: #888;
+}
+
+.info-value {
+    font-weight: 500;
+    color: #333;
+}
+
+.container-card-footer {
+    padding: 15px;
+    border-top: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+}
+
+/* Empty State */
+.empty-state {
+    padding: 40px 0;
+}
+
+.empty-state-icon {
+    font-size: 3rem;
+    color: #ccc;
+    margin-bottom: 20px;
+}
+
+/* Pagination */
+.pagination {
+    margin-top: 30px;
+}
+
+.page-link {
+    color: #6366f1;
+    border-color: #e9ecef;
+}
+
+.page-item.active .page-link {
+    background-color: #6366f1;
+    border-color: #6366f1;
+}
+
+/* Animations */
+.animate__animated {
+    animation-duration: 0.5s;
+}
+
+@keyframes rotating {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.rotating {
+    animation: rotating 1s linear infinite;
+}
+
+/* Modal Styles */
+.modal-content {
+    border-radius: 10px;
+    overflow: hidden;
+    border: none;
+}
+
+.modal-header {
+    padding: 15px 20px;
+}
+
+.container-details-content {
+    padding: 10px;
+}
+
+.detail-section {
+    margin-bottom: 20px;
+}
+
+.detail-section-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: #6366f1;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 5px;
+}
+
+.detail-row {
+    display: flex;
+    margin-bottom: 8px;
+}
+
+.detail-label {
+    width: 40%;
+    font-weight: 500;
+    color: #555;
+}
+
+.detail-value {
+    width: 60%;
+    color: #333;
+}
+
+/* Bulk Actions */
+.bulk-actions {
+    background-color: #f8f9fa;
+    padding: 10px 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Current Date & Time
+    function updateDateTime() {
+        const now = new Date();
+        const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit' };
+        
+        document.getElementById('currentDate').textContent = now.toLocaleDateString('ar-SA', dateOptions);
+        document.getElementById('currentTime').textContent = now.toLocaleTimeString('ar-SA', timeOptions);
+    }
+    
+    updateDateTime();
+    setInterval(updateDateTime, 1000);
+    
+    // تفعيل التلميحات (Tooltips)
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+    // تحديد جميع الحاويات
+    const selectAllCheckbox = document.getElementById('selectAllContainers');
+    const containerCheckboxes = document.querySelectorAll('.container-checkbox');
+    const bulkActionsButtons = document.querySelector('.bulk-actions-buttons');
+    
+    selectAllCheckbox.addEventListener('change', function() {
+        const isChecked = this.checked;
+        containerCheckboxes.forEach(checkbox => {
+            checkbox.checked = isChecked;
+        });
+        
+        updateBulkActionsVisibility();
+    });
+    
+    containerCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            updateBulkActionsVisibility();
+            
+            // تحديث حالة "تحديد الكل" إذا تم تحديد جميع الحاويات
+            const allChecked = Array.from(containerCheckboxes).every(cb => cb.checked);
+            selectAllCheckbox.checked = allChecked;
+        });
+    });
+    
+    function updateBulkActionsVisibility() {
+        const anyChecked = Array.from(containerCheckboxes).some(cb => cb.checked);
+        bulkActionsButtons.style.display = anyChecked ? 'block' : 'none';
+        
+        // تحديث عدد الحاويات المحددة
+        const selectedCount = Array.from(containerCheckboxes).filter(cb => cb.checked).length;
+        document.getElementById('selectedContainersCount').textContent = selectedCount;
+    }
+    
+    // عرض تفاصيل الحاوية
+    const containerDetailsModal = new bootstrap.Modal(document.getElementById('containerDetailsModal'));
+    const containerNumbers = document.querySelectorAll('.container-number');
+    const viewButtons = document.querySelectorAll('.view-container-details');
+    
+    function showContainerDetails(containerId) {
+        // هنا يمكن إضافة طلب AJAX لجلب تفاصيل الحاوية
+        fetch(`/port/api/containers/${containerId}/`)
+            .then(response => response.json())
+            .then(data => {
+                const modalContent = document.querySelector('.container-details-content');
+                const editLink = document.querySelector('.edit-container-link');
+                
+                // تحديث عنوان المودال
+                document.getElementById('containerDetailsModalLabel').textContent = `تفاصيل الحاوية: ${data.container_number}`;
+                
+                // تحديث رابط التعديل
+                editLink.href = `/port/containers/${containerId}/edit/`;
+                
+                // إنشاء محتوى التفاصيل
+                let detailsHTML = `
+                    <div class="detail-section">
+                        <div class="detail-section-title">معلومات أساسية</div>
+                        <div class="detail-row">
+                            <div class="detail-label">رقم الحاوية:</div>
+                            <div class="detail-value">${data.container_number}</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">النوع:</div>
+                            <div class="detail-value">${data.container_type_display}</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">الحالة:</div>
+                            <div class="detail-value">
+                                <span class="badge 
+                                    {% if data.status == 'LOADING' %}bg-primary
+                                    {% elif data.status == 'EMPTY' %}bg-secondary
+                                    {% elif data.status == 'GENERAL_CARGO' %}bg-warning
+                                    {% else %}bg-info{% endif %}">
+                                    ${data.status_display}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">الوزن:</div>
+                            <div class="detail-value">${data.weight ? data.weight + ' طن' : 'غير محدد'}</div>
+                        </div>
+                        <div class="detail-row">
+                            <div class="detail-label">تاريخ الإنشاء:</div>
+                            <div class="detail-value">${data.created_at}</div>
+                        </div>
+                    </div>
+                `;
+                
+                if (data.delivery_order) {
+                    detailsHTML += `
+                        <div class="detail-section">
+                            <div class="detail-section-title">إذن التسليم</div>
+                            <div class="detail-row">
+                                <div class="detail-label">رقم الإذن:</div>
+                                <div class="detail-value">
+                                    <a href="/port/delivery-orders/${data.delivery_order.id}/">
+                                        ${data.delivery_order.order_number}
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="detail-row">
+                                <div class="detail-label">نوع الإذن:</div>
+                                <div class="detail-value">${data.delivery_order.status_display}</div>
+                            </div>
+                            <div class="detail-row">
+                                <div class="detail-label">تاريخ الإصدار:</div>
+                                <div class="detail-value">${data.delivery_order.issue_date}</div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                if (data.driver || data.truck) {
+                    detailsHTML += `
+                        <div class="detail-section">
+                            <div class="detail-section-title">معلومات النقل</div>
+                    `;
+                    
+                    if (data.driver) {
+                        detailsHTML += `
+                            <div class="detail-row">
+                                <div class="detail-label">السائق:</div>
+                                <div class="detail-value">${data.driver.name}</div>
+                            </div>
+                            <div class="detail-row">
+                                <div class="detail-label">رقم هاتف السائق:</div>
+                                <div class="detail-value">${data.driver.phone_number}</div>
+                            </div>
+                        `;
+                    }
+                    
+                    if (data.truck) {
+                        detailsHTML += `
+                            <div class="detail-row">
+                                <div class="detail-label">الشاحنة:</div>
+                                <div class="detail-value">${data.truck.plate_number}</div>
+                            </div>
+                            <div class="detail-row">
+                                <div class="detail-label">نوع الشاحنة:</div>
+                                <div class="detail-value">${data.truck.truck_type}</div>
+                            </div>
+                        `;
+                    }
+                    
+                    detailsHTML += `</div>`;
+                }
+                
+                if (data.trips && data.trips.length > 0) {
+                    detailsHTML += `
+                        <div class="detail-section">
+                            <div class="detail-section-title">الرحلات المرتبطة</div>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>رقم الرحلة</th>
+                                            <th>تاريخ البداية</th>
+                                            <th>تاريخ النهاية</th>
+                                            <th>الحالة</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                    `;
+                    
+                    data.trips.forEach(trip => {
+                        detailsHTML += `
+                            <tr>
+                                <td>
+                                    <a href="/port/trips/${trip.id}/">
+                                        ${trip.id}
+                                    </a>
+                                </td>
+                                <td>${trip.start_time}</td>
+                                <td>${trip.end_time || 'مستمرة'}</td>
+                                <td>
+                                    <span class="badge ${trip.status === 'completed' ? 'bg-success' : trip.status === 'active' ? 'bg-primary' : 'bg-warning'}">
+                                        ${trip.status_display}
+                                    </span>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    
+                    detailsHTML += `
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                modalContent.innerHTML = detailsHTML;
+                containerDetailsModal.show();
+            })
+            .catch(error => {
+                console.error('Error fetching container details:', error);
+                
+            });
+    }
+    
+    // إضافة مستمعي الأحداث لأرقام الحاويات وأزرار العرض
+    containerNumbers.forEach(number => {
+        number.addEventListener('click', function() {
+            const containerId = this.closest('.container-card').dataset.containerId;
+            showContainerDetails(containerId);
+        });
+    });
+    
+    viewButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const containerId = this.closest('.container-card').dataset.containerId;
+            showContainerDetails(containerId);
+        });
+    });
+    
+    // تحديث الصفحة
+    document.getElementById('refreshContainers').addEventListener('click', function() {
+        this.classList.add('rotating');
+        setTimeout(() => {
+            window.location.reload();
+        }, 500);
+    });
+    
+    // تصدير Excel
+    document.getElementById('exportExcel').addEventListener('click', function() {
+        // يمكن إضافة رابط لتصدير Excel
+        window.location.href = '/port/containers/export/excel/';
+    });
+    
+    // تصدير PDF
+    document.getElementById('exportPDF').addEventListener('click', function() {
+        // يمكن إضافة رابط لتصدير PDF
+        window.location.href = '/port/containers/export/pdf/';
+    });
+    
+    // طباعة الحاويات
+    document.getElementById('printContainers').addEventListener('click', function() {
+        // إنشاء نافذة طباعة جديدة
+        const printWindow = window.open('', '_blank');
+        
+        // الحصول على بيانات الجدول
+        const table = document.querySelector('.containers-table');
+        const rows = Array.from(table.querySelectorAll('tbody tr'));
+        
+        // إنشاء محتوى HTML للطباعة
+        let printContent = `
+        <!DOCTYPE html>
+        <html dir="rtl">
+        <head>
+            <title>طباعة قائمة الحاويات</title>
+            <meta charset="UTF-8">
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    direction: rtl;
+                    padding: 20px;
+                }
+                h1 {
+                    text-align: center;
+                    margin-bottom: 20px;
+                }
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-bottom: 20px;
+                }
+                th, td {
+                    border: 1px solid #ddd;
+                    padding: 8px;
+                    text-align: right;
+                }
+                th {
+                    background-color: #f2f2f2;
+                    font-weight: bold;
+                }
+                tr:nth-child(even) {
+                    background-color: #f9f9f9;
+                }
+                .badge {
+                    padding: 3px 8px;
+                    border-radius: 4px;
+                    font-size: 12px;
+                    font-weight: bold;
+                    color: white;
+                    display: inline-block;
+                }
+                .badge-primary { background-color: #007bff; }
+                .badge-secondary { background-color: #6c757d; }
+                .badge-success { background-color: #28a745; }
+                .badge-warning { background-color: #ffc107; color: #212529; }
+                .badge-info { background-color: #17a2b8; }
+                .no-print { display: none; }
+                .print-header {
+                    display: flex;
+                    justify-content: space-between;
+                    margin-bottom: 20px;
+                }
+                .print-date {
+                    font-size: 14px;
+                    color: #666;
+                }
+                @media print {
+                    .no-print { display: none; }
+                    button { display: none; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="print-header">
+                <div>
+                    <h1>قائمة الحاويات</h1>
+                </div>
+                <div class="print-date">
+                    تاريخ الطباعة: ${new Date().toLocaleDateString('ar-SA')}
+                </div>
+            </div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>رقم الحاوية</th>
+                        <th>النوع</th>
+                        <th>الوزن</th>
+                        <th>إذن التسليم</th>
+                        <th>الحالة</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+        
+        // إضافة صفوف الجدول
+        rows.forEach(row => {
+            // تجاهل الصفوف المخفية
+            if (row.style.display !== 'none') {
+                const containerNumber = row.querySelector('.container-number').textContent.trim();
+                const containerType = row.querySelector('td:nth-child(3)').textContent.trim();
+                const weight = row.querySelector('td:nth-child(4)').textContent.trim();
+                const deliveryOrder = row.querySelector('td:nth-child(5)').textContent.trim();
+                const status = row.querySelector('.status-badge').textContent.trim();
+                
+                printContent += `
+                <tr>
+                    <td>${containerNumber}</td>
+                    <td>${containerType}</td>
+                    <td>${weight}</td>
+                    <td>${deliveryOrder}</td>
+                    <td>${status}</td>
+                </tr>`;
+            }
+        });
+        
+        printContent += `
+                </tbody>
+            </table>
+            
+            <div class="text-center mt-4 no-print">
+                <button onclick="window.print()" class="btn btn-primary">طباعة</button>
+                <button onclick="window.close()" class="btn btn-secondary">إغلاق</button>
+            </div>
+        </body>
+        </html>`;
+        
+        // كتابة المحتوى في نافذة الطباعة
+        printWindow.document.open();
+        printWindow.document.write(printContent);
+        printWindow.document.close();
+        
+        // تأخير قليل قبل فتح نافذة الطباعة
+        setTimeout(() => {
+            printWindow.print();
+        }, 500);
+    });
+    
+    // إجراءات متعددة
+    document.getElementById('bulkAssign').addEventListener('click', function() {
+        const selectedContainers = Array.from(containerCheckboxes)
+            .filter(cb => cb.checked)
+            .map(cb => cb.value);
+            
+        if (selectedContainers.length === 0) return;
+        
+        // هنا يمكن فتح مودال لربط الحاويات بإذن تسليم
+        document.getElementById('selectedContainersIds').value = selectedContainers.join(',');
+        const bulkAssignModal = new bootstrap.Modal(document.getElementById('bulkAssignModal'));
+        bulkAssignModal.show();
+    });
+    
+    document.getElementById('bulkStatus').addEventListener('click', function() {
+        const selectedContainers = Array.from(containerCheckboxes)
+            .filter(cb => cb.checked)
+            .map(cb => cb.value);
+            
+        if (selectedContainers.length === 0) return;
+        
+        // هنا يمكن فتح مودال لتغيير حالة الحاويات
+        document.getElementById('selectedContainersForStatus').value = selectedContainers.join(',');
+        const bulkStatusModal = new bootstrap.Modal(document.getElementById('bulkStatusModal'));
+        bulkStatusModal.show();
+    });
+    
+    document.getElementById('bulkDelete').addEventListener('click', function() {
+        const selectedContainers = Array.from(containerCheckboxes)
+            .filter(cb => cb.checked)
+            .map(cb => cb.value);
+            
+        if (selectedContainers.length === 0) return;
+        
+        if (confirm(`هل أنت متأكد من حذف ${selectedContainers.length} حاوية؟`)) {
+            // هنا يمكن إرسال طلب لحذف الحاويات المحددة
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/port/containers/delete-multiple/';
+            
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrfmiddlewaretoken';
+            csrfInput.value = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            
+            const containersInput = document.createElement('input');
+            containersInput.type = 'hidden';
+            containersInput.name = 'containers';
+            containersInput.value = selectedContainers.join(',');
+            
+            form.appendChild(csrfInput);
+            form.appendChild(containersInput);
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
+});
+</script>
+{% endblock %}

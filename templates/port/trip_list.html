@@ -1,0 +1,512 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}قائمة الرحلات{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Top Navigation Bar -->
+    <div class="top-nav-bar">
+        <div class="container-fluid">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h1 class="dashboard-title">قائمة الرحلات <small class="text-muted">إدارة الرحلات</small></h1>
+                </div>
+                <div class="col-md-6 text-end">
+                    <div class="btn-group">
+                        <a href="{% url 'port:add_trip' %}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> إضافة رحلة جديدة
+                        </a>
+                        
+                        <button class="btn btn-success" id="exportExcel">
+                            <i class="fas fa-file-excel"></i> تصدير Excel
+                        </button>
+                        <button class="btn btn-info" id="printTable">
+                            <i class="fas fa-print"></i> طباعة
+                        </button>
+                        <a href="{% url 'port:home' %}" class="btn btn-secondary">
+                            <i class="fas fa-home"></i> الرئيسية
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-2">
+                {% include 'port/partials/sidebar.html' %}
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-10">
+                <!-- إحصائيات الرحلات -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="stat-card bg-gradient-primary">
+                            <div class="stat-card-body">
+                                <div class="stat-card-icon">
+                                    <i class="fas fa-route"></i>
+                                </div>
+                                <div class="stat-card-info">
+                                    <h5 class="stat-card-title">إجمالي الرحلات</h5>
+                                    <div class="stat-card-value">{{ total_count }}</div>
+                                    <div class="stat-card-subtitle">إجمالي عدد الرحلات المسجلة</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card bg-gradient-success">
+                            <div class="stat-card-body">
+                                <div class="stat-card-icon">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <div class="stat-card-info">
+                                    <h5 class="stat-card-title">الرحلات المكتملة</h5>
+                                    <div class="stat-card-value">{{ completed_count }}</div>
+                                    <div class="stat-card-subtitle">عدد الرحلات المكتملة</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card bg-gradient-info">
+                            <div class="stat-card-body">
+                                <div class="stat-card-icon">
+                                    <i class="fas fa-truck-moving"></i>
+                                </div>
+                                <div class="stat-card-info">
+                                    <h5 class="stat-card-title">الرحلات النشطة</h5>
+                                    <div class="stat-card-value">{{ active_count }}</div>
+                                    <div class="stat-card-subtitle">عدد الرحلات قيد التنفيذ</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card bg-gradient-warning">
+                            <div class="stat-card-body">
+                                <div class="stat-card-icon">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                                <div class="stat-card-info">
+                                    <h5 class="stat-card-title">الرحلات المعلقة</h5>
+                                    <div class="stat-card-value">{{ pending_count }}</div>
+                                    <div class="stat-card-subtitle">عدد الرحلات المعلقة</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- بحث وفلترة -->
+                <div class="card dashboard-card mb-4">
+                    <div class="card-header">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <form method="get" class="search-form">
+                                    <div class="input-group">
+                                        <input type="text" name="q" class="form-control" placeholder="بحث عن رحلة..." value="{{ request.GET.q|default:'' }}">
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-search"></i>
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                            <div class="col-md-6 text-end">
+                                <div class="btn-group">
+                                    <a href="?status=active" class="btn btn-outline-info {% if request.GET.status == 'active' %}active{% endif %}">نشطة</a>
+                                    <a href="?status=completed" class="btn btn-outline-success {% if request.GET.status == 'completed' %}active{% endif %}">مكتملة</a>
+                                    <a href="?status=pending" class="btn btn-outline-warning {% if request.GET.status == 'pending' %}active{% endif %}">معلقة</a>
+                                    <a href="{% url 'port:trip_list' %}" class="btn btn-outline-primary">الكل</a>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- فلترة إضافية -->
+                        <div class="row mt-3">
+                            <div class="col-md-12">
+                                <form method="get" class="filter-form">
+                                    <div class="row">
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+                                                <label for="delivery_order">إذن التسليم:</label>
+                                                <select name="delivery_order" id="delivery_order" class="form-select">
+                                                    <option value="">-- اختر إذن التسليم --</option>
+                                                    {% for order in delivery_orders %}
+                                                    <option value="{{ order.id }}" {% if request.GET.delivery_order == order.id|stringformat:"s" %}selected{% endif %}>
+                                                        {{ order.order_number }}
+                                                    </option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+                                                <label for="order_type">نوع الإذن:</label>
+                                                <select name="order_type" id="order_type" class="form-select">
+                                                    <option value="">-- اختر نوع الإذن --</option>
+                                                    <option value="loading" {% if request.GET.order_type == 'loading' %}selected{% endif %}>تحميل</option>
+                                                    <option value="partial" {% if request.GET.order_type == 'partial' %}selected{% endif %}>تفريغ</option>
+                                                    <option value="unloading" {% if request.GET.order_type == 'unloading' %}selected{% endif %}>تجزئة</option>
+                                                    
+                                                    <option value="general" {% if request.GET.order_type == 'general' %}selected{% endif %}>بضائع عامة</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+                                                <label for="date_from">من تاريخ:</label>
+                                                <input type="date" name="date_from" id="date_from" class="form-control" value="{{ request.GET.date_from|default:'' }}">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+                                                <label for="date_to">إلى تاريخ:</label>
+                                                <input type="date" name="date_to" id="date_to" class="form-control" value="{{ request.GET.date_to|default:'' }}">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row mt-2">
+                                        <div class="col-md-12 text-end">
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="fas fa-filter"></i> تطبيق الفلتر
+                                            </button>
+                                            <a href="{% url 'port:trip_list' %}" class="btn btn-secondary">
+                                                <i class="fas fa-redo"></i> إعادة ضبط
+                                            </a>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- جدول الرحلات -->
+                <div class="card dashboard-card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="tripsTable">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>رقم الرحلة</th>
+                                        <th>إذن التسليم</th>
+                                        <th>نوع الإذن</th>
+                                        <th>الحاويات</th>
+                                        <th>الحالة</th>
+                                        <th>تاريخ البداية</th>
+                                        <th>تاريخ النهاية</th>
+                                        <th>الإجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for trip in trips %}
+                                    <tr>
+                                        <td>{{ forloop.counter }}</td>
+                                        <td>{{ trip.id }}</td>
+                                        <td>{{ trip.delivery_order.order_number }}</td>
+                                        <td>
+                                            <span class="badge 
+                                                {% if trip.delivery_order.status == 'UNLOADING' %}bg-info
+                                                {% elif trip.delivery_order.status == 'LOADING' %}bg-success
+                                                {% elif trip.delivery_order.status == 'EMPTY' %}bg-warning
+                                                {% elif trip.delivery_order.status == 'GENERAL_CARGO' %}bg-secondary
+                                                {% else %}bg-light{% endif %}">
+                                                {{ trip.delivery_order.get_status_display }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-primary">{{ trip.containers.count }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge 
+                                                {% if trip.status == 'active' %}bg-info
+                                                {% elif trip.status == 'completed' %}bg-success
+                                                {% elif trip.status == 'pending' %}bg-warning
+                                                {% else %}bg-secondary{% endif %}">
+                                                {{ trip.get_status_display }}
+                                            </span>
+                                        </td>
+                                        <td>{{ trip.start_time|date:"Y-m-d" }}</td>
+                                        <td>{{ trip.end_time|date:"Y-m-d" }}</td>
+                                        <td>
+                                            <div class="btn-group">
+                                                <a href="{% url 'port:trip_detail' trip.id %}" class="btn btn-sm btn-outline-info">
+                                                    <i class="fas fa-eye"></i> عرض
+                                                </a>
+                                                <a href="{% url 'port:edit_trip' trip.id %}" class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-edit"></i> تعديل
+                                                </a>
+                                                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteTripModal{{ trip.id }}">
+                                                    <i class="fas fa-trash"></i> حذف
+                                                </button>
+                                            </div>
+                                            
+                                            <!-- Modal for Delete Confirmation -->
+                                            <div class="modal fade" id="deleteTripModal{{ trip.id }}" tabindex="-1" aria-hidden="true">
+                                                <div class="modal-dialog">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title">تأكيد الحذف</h5>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                        </div>
+                                                        <div class="modal-body">
+                                                            هل أنت متأكد من حذف الرحلة رقم: {{ trip.id }}؟
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                                                            <a href="{% url 'port:delete_trip' trip.id %}" class="btn btn-danger">حذف</a>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="8" class="text-center">لا توجد رحلات</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        {% include 'port/partials/pagination.html' with page_obj=trips %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // تصدير الجدول إلى Excel
+        document.getElementById('exportExcel').addEventListener('click', function() {
+            // إظهار مؤشر التحميل
+            const loadingIndicator = document.createElement('div');
+            loadingIndicator.className = 'loading-indicator';
+            loadingIndicator.innerHTML = '<div class="spinner-border text-primary" role="status"><span class="visually-hidden">جاري التحميل...</span></div><div class="mt-2">جاري تحضير ملف Excel...</div>';
+            loadingIndicator.style.position = 'fixed';
+            loadingIndicator.style.top = '50%';
+            loadingIndicator.style.left = '50%';
+            loadingIndicator.style.transform = 'translate(-50%, -50%)';
+            loadingIndicator.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
+            loadingIndicator.style.padding = '20px';
+            loadingIndicator.style.borderRadius = '10px';
+            loadingIndicator.style.zIndex = '9999';
+            loadingIndicator.style.textAlign = 'center';
+            document.body.appendChild(loadingIndicator);
+            
+            // إرسال طلب AJAX للحصول على جميع البيانات
+            const currentUrl = new URL(window.location.href);
+            currentUrl.searchParams.set('all', 'true'); // إضافة معلمة للحصول على كل البيانات
+            
+            fetch(currentUrl)
+                .then(response => response.text())
+                .then(html => {
+                    // إنشاء عنصر DOM مؤقت لتحليل HTML
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const allTripsTable = doc.getElementById('tripsTable');
+                    
+                    // حذف عمود الإجراءات من الجدول للتصدير
+                    const tableClone = allTripsTable.cloneNode(true);
+                    const actionCells = tableClone.querySelectorAll('th:last-child, td:last-child');
+                    actionCells.forEach(cell => cell.remove());
+                    
+                    // تصدير الجدول إلى Excel
+                    const wb = XLSX.utils.table_to_book(tableClone, {sheet: "قائمة الرحلات"});
+                    
+                    // استخدام اسم ملف يعكس الفلترة الحالية
+                    let filename = "تقرير_الرحلات";
+                    
+                    // إضافة معلومات الفلترة إلى اسم الملف إذا كانت موجودة
+                    const status = new URLSearchParams(window.location.search).get('status');
+                    if (status) {
+                        filename += "_" + status;
+                    }
+                    
+                    // إضافة التاريخ إلى اسم الملف
+                    const today = new Date();
+                    const dateStr = today.getFullYear() + '-' + 
+                                   (today.getMonth() + 1).toString().padStart(2, '0') + '-' + 
+                                   today.getDate().toString().padStart(2, '0');
+                    filename += "_" + dateStr;
+                    
+                    XLSX.writeFile(wb, filename + ".xlsx");
+                    
+                    // إزالة مؤشر التحميل
+                    document.body.removeChild(loadingIndicator);
+                })
+                .catch(error => {
+                    console.error('خطأ في جلب البيانات:', error);
+                    alert('حدث خطأ أثناء تحضير ملف Excel');
+                    // إزالة مؤشر التحميل في حالة الخطأ
+                    document.body.removeChild(loadingIndicator);
+                });
+        });
+        
+        // طباعة الجدول
+        document.getElementById('printTable').addEventListener('click', function() {
+            // إرسال طلب AJAX للحصول على جميع البيانات
+            const currentUrl = new URL(window.location.href);
+            currentUrl.searchParams.set('all', 'true'); // إضافة معلمة للحصول على كل البيانات
+            
+            fetch(currentUrl)
+                .then(response => response.text())
+                .then(html => {
+                    // إنشاء عنصر DOM مؤقت لتحليل HTML
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const allTripsTable = doc.getElementById('tripsTable');
+                    
+                    // إنشاء نافذة طباعة جديدة
+                    const printWindow = window.open('', '_blank');
+                    
+                    // حذف عمود الإجراءات من الجدول
+                    const actionCells = allTripsTable.querySelectorAll('th:last-child, td:last-child');
+                    actionCells.forEach(cell => cell.remove());
+                    
+                    // إنشاء محتوى HTML للطباعة
+                    let printContent = `
+                        <html dir="rtl">
+                        <head>
+                            <title>طباعة قائمة الرحلات</title>
+                            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+                            <style>
+                                body { 
+                                    font-family: Arial, sans-serif;
+                                    padding: 20px;
+                                }
+                                .table { 
+                                    width: 100%;
+                                    border-collapse: collapse;
+                                    margin-bottom: 1rem;
+                                }
+                                .table th, .table td { 
+                                    padding: 8px;
+                                    border: 1px solid #ddd;
+                                    text-align: right;
+                                }
+                                .table th { 
+                                    background-color: #f2f2f2;
+                                    font-weight: bold;
+                                }
+                                @media print {
+                                    .no-print { display: none; }
+                                    thead { display: table-header-group; }
+                                    tfoot { display: table-footer-group; }
+                                }
+                            </style>
+                        </head>
+                        <body>
+                            <div class="container">
+                                <h2 class="text-center mb-4">تقرير الرحلات</h2>
+                                <div class="text-center mb-3">
+                                    <small>تاريخ التقرير: ${new Date().toLocaleDateString('ar-SA')}</small>
+                                </div>
+                                ${allTripsTable.outerHTML}
+                                <div class="text-center mt-4 no-print">
+                                    <button onclick="window.print()" class="btn btn-primary">طباعة</button>
+                                </div>
+                            </div>
+                        </body>
+                        </html>
+                    `;
+                    
+                    printWindow.document.open();
+                    printWindow.document.write(printContent);
+                    printWindow.document.close();
+                })
+                .catch(error => {
+                    console.error('خطأ في جلب البيانات:', error);
+                    alert('حدث خطأ أثناء تحضير الطباعة');
+                });
+        });
+    });
+</script>
+{% endblock %}
+
+<style>
+    .table-row {
+        transition: all 0.2s ease-in-out;
+    }
+    .table-row:hover {
+        background-color: rgba(13, 110, 253, 0.05) !important;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+    .transition {
+        transition: all 0.2s ease;
+    }
+    .transition:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .form-select, .form-control {
+        border-radius: 0.5rem;
+        border: 1px solid #dee2e6;
+    }
+    .form-control:focus, .form-select:focus {
+        border-color: #86b7fe;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+    .input-group-text {
+        background-color: #f8f9fa;
+        border-color: #dee2e6;
+        border-radius: 0.5rem 0 0 0.5rem;
+    }
+    .card {
+        border: none;
+        border-radius: 0.75rem;
+        overflow: hidden;
+    }
+    .table thead th {
+        font-weight: bold;
+        border-top: none;
+        border-bottom: 2px solid #dee2e6;
+    }
+    .badge {
+        padding: 0.5em 0.75em;
+        font-weight: 500;
+    }
+    .rounded-pill {
+        border-radius: 50rem !important;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .btn-group .btn {
+            margin-bottom: 0.25rem;
+            border-radius: 0.25rem !important;
+        }
+    }
+
+    @media print {
+        body * {
+            visibility: hidden;
+        }
+        #tripsTable, #tripsTable * {
+            visibility: visible;
+        }
+        #tripsTable {
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+    }
+</style> 
