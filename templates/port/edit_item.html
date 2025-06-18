@@ -52,19 +52,32 @@
                                     <div class="row mb-3">
                                         <div class="col-md-6">
                                             <div class="form-group">
-                                                <label for="{{ form.order_number.id_for_label|default:'id_order_number' }}" class="form-label">رقم الإذن</label>
-                                                {% render_field form.order_number class="form-control" placeholder="أدخل رقم الإذن" %}
+                                                <label for="{{ form.order_number.id_for_label }}" class="form-label">رقم الإذن</label>
+                                                <input type="text" 
+                                                       name="{{ form.order_number.name }}" 
+                                                       id="{{ form.order_number.id_for_label }}"
+                                                       class="form-control {% if form.order_number.errors %}is-invalid{% endif %}" 
+                                                       value="{{ form.order_number.value|default:'' }}"
+                                                       placeholder="أدخل رقم الإذن">
                                                 {% if form.order_number.errors %}
-                                                    <div class="invalid-feedback d-block">{{ form.order_number.errors.0 }}</div>
+                                                    <div class="invalid-feedback">{{ form.order_number.errors.0 }}</div>
                                                 {% endif %}
                                             </div>
                                         </div>
                                         <div class="col-md-6">
                                             <div class="form-group">
-                                                <label for="{{ form.status.id_for_label|default:'id_status' }}" class="form-label">حالة الإذن</label>
-                                                {% render_field form.status class="form-select" %}
+                                                <label for="{{ form.status.id_for_label }}" class="form-label">حالة الإذن</label>
+                                                <select name="{{ form.status.name }}" 
+                                                        id="{{ form.status.id_for_label }}"
+                                                        class="form-select {% if form.status.errors %}is-invalid{% endif %}">
+                                                    {% for choice in form.status.field.choices %}
+                                                        <option value="{{ choice.0 }}" {% if choice.0 == form.status.value %}selected{% endif %}>
+                                                            {{ choice.1 }}
+                                                        </option>
+                                                    {% endfor %}
+                                                </select>
                                                 {% if form.status.errors %}
-                                                    <div class="invalid-feedback d-block">{{ form.status.errors.0 }}</div>
+                                                    <div class="invalid-feedback">{{ form.status.errors.0 }}</div>
                                                 {% endif %}
                                             </div>
                                         </div>
@@ -73,38 +86,54 @@
                                     <div class="row mb-3">
                                         <div class="col-md-6">
                                             <div class="form-group">
-                                                <label for="{{ form.issue_date.id_for_label|default:'id_issue_date' }}" class="form-label">تاريخ الإصدار</label>
-                                                {% render_field form.issue_date class="form-control" type="date" %}
+                                                <label for="{{ form.issue_date.id_for_label }}" class="form-label">تاريخ الإصدار</label>
+                                                <input type="date" 
+                                                       name="{{ form.issue_date.name }}" 
+                                                       id="{{ form.issue_date.id_for_label }}"
+                                                       class="form-control {% if form.issue_date.errors %}is-invalid{% endif %}" 
+                                                       value="{{ form.issue_date.value|date:'Y-m-d' }}">
                                                 {% if form.issue_date.errors %}
-                                                    <div class="invalid-feedback d-block">{{ form.issue_date.errors.0 }}</div>
+                                                    <div class="invalid-feedback">{{ form.issue_date.errors.0 }}</div>
                                                 {% endif %}
                                             </div>
                                         </div>
                                         <div class="col-md-6">
                                             <div class="form-group">
-                                                <label for="{{ form.expiry_date.id_for_label|default:'id_expiry_date' }}" class="form-label">تاريخ الانتهاء</label>
-                                                {% render_field form.expiry_date class="form-control" type="date" %}
+                                                <label for="{{ form.expiry_date.id_for_label }}" class="form-label">تاريخ الانتهاء</label>
+                                                <input type="date" 
+                                                       name="{{ form.expiry_date.name }}" 
+                                                       id="{{ form.expiry_date.id_for_label }}"
+                                                       class="form-control {% if form.expiry_date.errors %}is-invalid{% endif %}" 
+                                                       value="{{ form.expiry_date.value|date:'Y-m-d' }}">
                                                 {% if form.expiry_date.errors %}
-                                                    <div class="invalid-feedback d-block">{{ form.expiry_date.errors.0 }}</div>
+                                                    <div class="invalid-feedback">{{ form.expiry_date.errors.0 }}</div>
                                                 {% endif %}
                                             </div>
                                         </div>
                                     </div>
                                     
                                     <div class="form-group mb-3">
-                                        <label for="{{ form.notes.id_for_label|default:'id_notes' }}" class="form-label">ملاحظات</label>
-                                        {% render_field form.notes class="form-control" rows="3" placeholder="أدخل أي ملاحظات إضافية" %}
+                                        <label for="{{ form.notes.id_for_label }}" class="form-label">ملاحظات</label>
+                                        <textarea name="{{ form.notes.name }}" 
+                                                  id="{{ form.notes.id_for_label }}"
+                                                  class="form-control {% if form.notes.errors %}is-invalid{% endif %}" 
+                                                  rows="3" 
+                                                  placeholder="أدخل أي ملاحظات إضافية">{{ form.notes.value|default:'' }}</textarea>
                                         {% if form.notes.errors %}
-                                            <div class="invalid-feedback d-block">{{ form.notes.errors.0 }}</div>
+                                            <div class="invalid-feedback">{{ form.notes.errors.0 }}</div>
                                         {% endif %}
                                     </div>
                                     
-                                    {% if 'bulk_containers' in form.fields %}
+                                    {% if form.bulk_containers %}
                                     <div class="form-group mb-3">
-                                        <label for="{{ form.bulk_containers.id_for_label|default:'id_bulk_containers' }}" class="form-label">إضافة حاويات متعددة</label>
-                                        {% render_field form.bulk_containers class="form-control" rows="5" placeholder="أدخل أرقام الحاويات (حاوية واحدة في كل سطر)" %}
+                                        <label for="{{ form.bulk_containers.id_for_label }}" class="form-label">إضافة حاويات متعددة</label>
+                                        <textarea name="{{ form.bulk_containers.name }}" 
+                                                  id="{{ form.bulk_containers.id_for_label }}"
+                                                  class="form-control {% if form.bulk_containers.errors %}is-invalid{% endif %}" 
+                                                  rows="5" 
+                                                  placeholder="أدخل أرقام الحاويات (حاوية واحدة في كل سطر)">{{ form.bulk_containers.value|default:'' }}</textarea>
                                         {% if form.bulk_containers.errors %}
-                                            <div class="invalid-feedback d-block">{{ form.bulk_containers.errors.0 }}</div>
+                                            <div class="invalid-feedback">{{ form.bulk_containers.errors.0 }}</div>
                                         {% endif %}
                                     </div>
                                     {% endif %}
@@ -181,7 +210,7 @@
                                         </tbody>
                                     </table>
                                 </div>
-                            </div>
+            </div>
                         </div>
                     </div>
 
