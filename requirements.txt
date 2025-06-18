@@ -12,6 +12,7 @@ packaging==24.2
 pefile==2023.2.7
 pillow==11.1.0
 psycopg2-binary==2.9.10
+
 pyinstaller==6.12.0
 pyinstaller-hooks-contrib==2025.1
 python-bidi==0.4.2
