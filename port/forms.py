@@ -107,13 +107,13 @@ class DeliveryOrderForm(forms.ModelForm):
     def clean_bulk_containers(self):
         bulk_containers = self.cleaned_data.get('bulk_containers', '')
         if bulk_containers:
-            container_numbers = [num.strip() for num in bulk_containers.split('\n') if num.strip()]
+            container_numbers = [str(num).strip() for num in bulk_containers.split('\n') if str(num).strip()]
             
             # التحقق من وجود تكرارات في نفس الإدخال
             duplicates = set([num for num in container_numbers if container_numbers.count(num) > 1])
             if duplicates:
                 raise forms.ValidationError(
-                    f'هنالك حاويات متكررة في نفس الإذن: {", ".join(duplicates)}'
+                    f'هنالك حاويات متكررة في نفس الإذن: {", ".join([str(d) for d in duplicates])}'
                 )
             
             # التحقق من الحاويات المرتبطة بأذونات أخرى
