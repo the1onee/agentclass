@@ -1,80 +1,856 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load port_filters %}
 
-{% block title %}نظام إدارة المندوب - لوحة التحكم{% endblock %}
+{% block title %}نظام إدارة المندوب - لوحة التحكم الذكية{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
+<style>
+/* تصميم رسمي ومؤسسي */
+:root {
+    --primary-gradient: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+    --success-gradient: linear-gradient(135deg, #065f46 0%, #10b981 100%);
+    --warning-gradient: linear-gradient(135deg, #92400e 0%, #f59e0b 100%);
+    --info-gradient: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+    --danger-gradient: linear-gradient(135deg, #991b1b 0%, #ef4444 100%);
+    --dark-gradient: linear-gradient(135deg, #1f2937 0%, #374151 100%);
+    --glass-bg: rgba(255, 255, 255, 0.15);
+    --glass-border: rgba(255, 255, 255, 0.25);
+    --corporate-blue: #1e40af;
+    --corporate-gray: #374151;
+    --corporate-navy: #1e3a8a;
+}
+
+* {
+    font-family: 'Tajawal', sans-serif;
+}
+
+body {
+    background: #f8fafc;
+    min-height: 100vh;
+    font-weight: 500;
+}
+
+@keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.hero-section {
+    background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+    padding: 2rem 0;
+    border-radius: 15px;
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+    border: 2px solid #e5e7eb;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+.hero-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="75" cy="25" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="50" cy="50" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="25" cy="75" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="75" cy="75" r="1" fill="rgba(255,255,255,0.1)"/></pattern></defs><rect width="100%" height="100%" fill="url(%23grain)"/></svg>');
+    opacity: 0.3;
+    animation: float 20s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+}
+
+.hero-content {
+    position: relative;
+    z-index: 2;
+}
+
+.welcome-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    padding: 2rem;
+    color: white;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.welcome-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+}
+
+.avatar-mega {
+    width: 120px;
+    height: 120px;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    color: var(--corporate-navy);
+    margin: 0 auto 1rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    animation: pulse 3s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.modern-stat-card {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border: 2px solid #e5e7eb;
+    border-radius: 20px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+    cursor: pointer;
+}
+
+.modern-stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+}
+
+.modern-stat-card:hover::before {
+    left: 100%;
+}
+
+.modern-stat-card:hover {
+    transform: translateY(-12px) scale(1.03);
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+    border-color: #3b82f6;
+}
+
+.modern-stat-card:hover .stat-icon-mega {
+    transform: rotate(10deg) scale(1.1);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.modern-stat-card:hover .stat-value-mega {
+    transform: scale(1.05);
+}
+
+.stat-icon-mega {
+    width: 90px;
+    height: 90px;
+    border-radius: 25px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.2rem;
+    color: white;
+    margin-bottom: 1.5rem;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.4s ease;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.stat-icon-mega::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transform: rotate(45deg);
+    transition: all 0.6s ease;
+    opacity: 0;
+}
+
+.modern-stat-card:hover .stat-icon-mega::before {
+    animation: shine 0.6s ease-in-out;
+}
+
+@keyframes shine {
+    0% {
+        left: -100%;
+        opacity: 0;
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        left: 100%;
+        opacity: 0;
+    }
+}
+
+@keyframes glow {
+    0%, 100% {
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+    }
+    50% {
+        box-shadow: 0 8px 25px rgba(59, 130, 246, 0.2);
+    }
+}
+
+.modern-stat-card:nth-child(1) {
+    animation: glow 3s ease-in-out infinite;
+    animation-delay: 0s;
+}
+
+.modern-stat-card:nth-child(2) {
+    animation: glow 3s ease-in-out infinite;
+    animation-delay: 0.5s;
+}
+
+.modern-stat-card:nth-child(3) {
+    animation: glow 3s ease-in-out infinite;
+    animation-delay: 1s;
+}
+
+.modern-stat-card:nth-child(4) {
+    animation: glow 3s ease-in-out infinite;
+    animation-delay: 1.5s;
+}
+
+.animated-progress::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    animation: progressShine 2s ease-in-out infinite;
+}
+
+@keyframes progressShine {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+.stat-value-mega {
+    font-size: 3rem;
+    font-weight: 900;
+    margin-bottom: 0.8rem;
+    background: linear-gradient(135deg, var(--corporate-navy), var(--corporate-blue));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    transition: all 0.4s ease;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.reports-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2rem;
+}
+
+.report-card {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border: 2px solid #e5e7eb;
+    border-radius: 18px;
+    padding: 2rem;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+    animation: reportCardFloat 6s ease-in-out infinite;
+}
+
+@keyframes reportCardFloat {
+    0%, 100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-5px);
+    }
+}
+
+.report-card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100px;
+    height: 100px;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+    border-radius: 50%;
+    transform: translate(30px, -30px);
+}
+
+.report-card:hover {
+    transform: translateY(-12px) scale(1.02);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    border-color: #3b82f6;
+    animation: none;
+}
+
+.chart-container {
+    position: relative;
+    height: 200px;
+    margin: 1rem 0;
+}
+
+.progress-ring {
+    width: 120px;
+    height: 120px;
+    margin: 0 auto;
+}
+
+.progress-ring circle {
+    transition: stroke-dasharray 0.5s ease-in-out;
+}
+
+.floating-elements {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: -1;
+}
+
+.floating-element {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    animation: float-up 15s infinite linear;
+}
+
+@keyframes float-up {
+    0% {
+        transform: translateY(100vh) rotate(0deg);
+        opacity: 0;
+    }
+    10% {
+        opacity: 1;
+    }
+    90% {
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(-100px) rotate(360deg);
+        opacity: 0;
+    }
+}
+
+.time-widget {
+    background: linear-gradient(135deg, #1e40af, #3b82f6);
+    border: 2px solid #1e3a8a;
+    border-radius: 15px;
+    padding: 1rem;
+    text-align: center;
+    color: white;
+    margin-bottom: 1rem;
+    box-shadow: 0 4px 15px rgba(30, 64, 175, 0.3);
+}
+
+.digital-clock {
+    font-size: 2rem;
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+    color: white;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.quick-access-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.quick-access-btn {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border: 2px solid #e5e7eb;
+    border-radius: 18px;
+    padding: 1.5rem;
+    text-align: center;
+    color: #374151;
+    text-decoration: none;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+    font-weight: 600;
+    transform: perspective(1px) translateZ(0);
+}
+
+.quick-access-btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    transition: all 0.5s ease;
+    transform: translate(-50%, -50%);
+}
+
+.quick-access-btn:hover::before {
+    width: 200%;
+    height: 200%;
+}
+
+.quick-access-btn:hover {
+    transform: translateY(-8px) scale(1.02);
+    background: linear-gradient(135deg, #1e40af, #3b82f6);
+    color: white;
+    text-decoration: none;
+    border-color: #1e3a8a;
+    box-shadow: 0 12px 35px rgba(30, 64, 175, 0.3);
+}
+
+.quick-access-btn:hover i {
+    color: white !important;
+    transform: scale(1.1);
+    transition: all 0.3s ease;
+}
+
+.notification-widget {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 15px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.notification-item {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.notification-item:last-child {
+    border-bottom: none;
+}
+
+.notification-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 1rem;
+    font-size: 1.2rem;
+}
+
+.weather-widget {
+    background: var(--info-gradient);
+    border-radius: 15px;
+    padding: 1rem;
+    text-align: center;
+    color: white;
+    margin-bottom: 1rem;
+}
+
+.section-title {
+    font-size: 1.8rem;
+    font-weight: 800;
+    margin-bottom: 1.5rem;
+    color: #1f2937;
+    text-align: center;
+    position: relative;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+    animation: titleGlow 4s ease-in-out infinite;
+}
+
+@keyframes titleGlow {
+    0%, 100% {
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+    }
+    50% {
+        text-shadow: 0 0 20px rgba(59, 130, 246, 0.4), 1px 1px 2px rgba(0, 0, 0, 0.1);
+    }
+}
+
+.section-title::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 3px;
+    background: linear-gradient(135deg, var(--corporate-blue), var(--corporate-navy));
+    border-radius: 2px;
+}
+
+@media (max-width: 768px) {
+    .modern-stat-card {
+        margin-bottom: 1rem;
+    }
+    
+    .reports-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .quick-access-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="dashboard-container">
-    <!-- Top Navigation Bar -->
-    <div class="top-nav-bar">
-        <div class="container-fluid">
+<!-- عناصر متحركة في الخلفية -->
+<div class="floating-elements">
+    <div class="floating-element" style="left: 10%; animation-delay: 0s;"></div>
+    <div class="floating-element" style="left: 20%; animation-delay: 2s;"></div>
+    <div class="floating-element" style="left: 30%; animation-delay: 4s;"></div>
+    <div class="floating-element" style="left: 40%; animation-delay: 6s;"></div>
+    <div class="floating-element" style="left: 50%; animation-delay: 8s;"></div>
+    <div class="floating-element" style="left: 60%; animation-delay: 10s;"></div>
+    <div class="floating-element" style="left: 70%; animation-delay: 12s;"></div>
+    <div class="floating-element" style="left: 80%; animation-delay: 14s;"></div>
+    <div class="floating-element" style="left: 90%; animation-delay: 16s;"></div>
+</div>
+
+<div class="container-fluid p-4">
+    <!-- قسم الترحيب الرئيسي -->
+    <div class="hero-section">
+        <div class="hero-content">
             <div class="row align-items-center">
-                <div class="col-md-6">
-                    <h1 class="dashboard-title">لوحة التحكم <small class="text-muted">مرحباً، {{ user.get_full_name }}</small></h1>
+                <div class="col-lg-8">
+                    <div class="welcome-card">
+                        <div class="row align-items-center">
+                            <div class="col-md-3 text-center">
+                                <div class="avatar-mega">
+                                    {{ user.get_full_name|first|upper }}
+                                </div>
+                            </div>
+                            <div class="col-md-9">
+                                <h1 class="mb-2" style="font-size: 2.5rem; font-weight: 800;">
+                                    مرحباً بك، {{ user.get_full_name|default:user.username }}! 
+                                    <span style="font-size: 1.5rem;">👋</span>
+                                </h1>
+                                <p class="mb-3" style="font-size: 1.2rem; opacity: 0.9;">
+                                    نظام إدارة المندوب الذكي - لوحة التحكم المتقدمة
+                                </p>
+                                <div class="d-flex gap-2 flex-wrap">
+                                    <span class="badge" style="background: rgba(255,255,255,0.2); font-size: 0.9rem; padding: 0.5rem 1rem;">
+                                        <i class="fas fa-crown me-1"></i> مندوب محترف
+                                    </span>
+                                    <span class="badge" style="background: rgba(255,255,255,0.2); font-size: 0.9rem; padding: 0.5rem 1rem;">
+                                        <i class="fas fa-shield-alt me-1"></i> حساب نشط
+                                    </span>
+                                    <span class="badge" style="background: rgba(255,255,255,0.2); font-size: 0.9rem; padding: 0.5rem 1rem;">
+                                        <i class="fas fa-star me-1"></i> عضو مميز
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="col-md-6 text-end">
-                    <div class="btn-group">
-                        <button type="button" class="btn btn-outline-primary" id="refreshDashboard">
-                            <i class="fas fa-sync-alt"></i> تحديث
-                        </button>
-                      
-                        <a href="{% url 'port:export_trips_csv' %}" class="btn btn-outline-success">
-                            <i class="fas fa-file-excel"></i> تصدير Excel
-                        </a>
+                <div class="col-lg-4">
+                    <!-- ويدجت الوقت -->
+                    <div class="time-widget">
+                        <div class="digital-clock" id="digitalTime">00:00:00</div>
+                        <div id="currentDate" style="font-size: 1rem; opacity: 0.8;"></div>
+                        <div class="mt-2">
+                            <i class="fas fa-map-marker-alt me-1"></i>
+                            <span>بغداد، العراق</span>
+                        </div>
+                    </div>
+                    
+                    <!-- ويدجت الطقس -->
+                    <div class="weather-widget">
+                        <div class="row align-items-center">
+                            <div class="col-6">
+                                <div style="font-size: 2rem;">☀️</div>
+                                <div style="font-size: 1.5rem; font-weight: bold;">28°C</div>
+                            </div>
+                            <div class="col-6">
+                                <div>مشمس</div>
+                                <div style="font-size: 0.9rem; opacity: 0.8;">رطوبة: 45%</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="container-fluid mt-4">
-        <div class="row">
-            <!-- Sidebar -->
-            <div class="col-md-2">
-                {% include 'port/partials/sidebar.html' %}
+    <!-- الإحصائيات الرئيسية بتصميم عصري -->
+    <div class="section-title">📊 نظرة عامة على النشاط</div>
+    <div class="row">
+        <div class="col-xl-3 col-lg-6 col-md-6">
+            <div class="modern-stat-card">
+                <div class="stat-icon-mega" style="background: var(--primary-gradient);">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                <div class="stat-value-mega" id="total-orders-counter">{{ total_orders|default:0 }}</div>
+                <h6 style="color: var(--corporate-navy); font-weight: 600; margin-bottom: 0.5rem;">أذونات التسليم</h6>
+                <div class="progress" style="height: 8px; border-radius: 10px; background: rgba(30, 58, 138, 0.2); margin: 1rem 0;">
+                    <div class="progress-bar animated-progress" style="background: var(--primary-gradient); border-radius: 10px; position: relative; overflow: hidden;" 
+                         role="progressbar" style="width: {{ active_orders|default:0 }}%"></div>
+                </div>
+                <small style="color: var(--corporate-gray); font-weight: 500;">{{ active_orders|default:0 }} نشط من أصل {{ total_orders|default:0 }}</small>
             </div>
+        </div>
 
-            <!-- Main Content -->
-            <div class="col-md-10">
-                <!-- Date & Time -->
-                <div class="date-time-bar mb-4">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="current-date">
-                                <i class="far fa-calendar-alt"></i> <span id="currentDate"></span>
-                            </div>
-                        </div>
-                        <div class="col-md-6 text-end">
-                            <div class="current-time">
-                                <i class="far fa-clock"></i> <span id="currentTime"></span>
-                            </div>
-                        </div>
-                    </div>
+        <div class="col-xl-3 col-lg-6 col-md-6">
+            <div class="modern-stat-card">
+                <div class="stat-icon-mega" style="background: var(--success-gradient);">
+                    <i class="fas fa-box"></i>
                 </div>
-                
-                <!-- Main Dashboard Content -->
-                <div class="dashboard-content">
-                    <!-- Statistics Cards -->
-                    {% include 'port/partials/stats.html' %}
-                    
-                    <!-- Main Dashboard Sections -->
-                    <div class="row">
-                        <!-- Recent Activity Section -->
-                        <div class="col-md-8">
-                            {% include 'port/partials/recent_activity.html' %}
-                        </div>
-                        
-                        <!-- Quick Actions Section -->
-                        <div class="col-md-4">
-                            {% include 'port/partials/quick_actions.html' %}
-                        </div>
-                    </div>
+                <div class="stat-value-mega" id="containers-counter">{{ containers_report.total|default:0 }}</div>
+                <h6 style="color: #065f46; font-weight: 600; margin-bottom: 0.5rem;">الحاويات</h6>
+                <div class="progress" style="height: 8px; border-radius: 10px; background: rgba(6, 95, 70, 0.2); margin: 1rem 0;">
+                    <div class="progress-bar animated-progress" style="background: var(--success-gradient); border-radius: 10px; position: relative; overflow: hidden;" 
+                         role="progressbar" style="width: {{ containers_report.percent|default:0 }}%"></div>
                 </div>
+                <small style="color: var(--corporate-gray); font-weight: 500;">{{ containers_report.assigned|default:0 }} مرتبط</small>
             </div>
+        </div>
+
+        <div class="col-xl-3 col-lg-6 col-md-6">
+            <div class="modern-stat-card">
+                <div class="stat-icon-mega" style="background: var(--info-gradient);">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="stat-value-mega" id="drivers-counter">{{ drivers_count|default:0 }}</div>
+                <h6 style="color: var(--corporate-blue); font-weight: 600; margin-bottom: 0.5rem;">السائقين النشطين</h6>
+                <div class="progress" style="height: 8px; border-radius: 10px; background: rgba(30, 64, 175, 0.2); margin: 1rem 0;">
+                    <div class="progress-bar animated-progress" style="background: var(--info-gradient); border-radius: 10px; position: relative; overflow: hidden;" 
+                         role="progressbar" style="width: 100%"></div>
+                </div>
+                <small style="color: var(--corporate-gray); font-weight: 500;">جميعهم متاحون</small>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-lg-6 col-md-6">
+            <div class="modern-stat-card">
+                <div class="stat-icon-mega" style="background: var(--warning-gradient);">
+                    <i class="fas fa-truck"></i>
+                </div>
+                <div class="stat-value-mega" id="trucks-counter">{{ trucks_report.total|default:0 }}</div>
+                <h6 style="color: #92400e; font-weight: 600; margin-bottom: 0.5rem;">الشاحنات</h6>
+                <div class="progress" style="height: 8px; border-radius: 10px; background: rgba(146, 64, 14, 0.2); margin: 1rem 0;">
+                    <div class="progress-bar animated-progress" style="background: var(--warning-gradient); border-radius: 10px; position: relative; overflow: hidden;" 
+                         role="progressbar" style="width: {{ trucks_report.percent|default:0 }}%"></div>
+                </div>
+                <small style="color: var(--corporate-gray); font-weight: 500;">{{ trucks_report.active|default:0 }} نشط</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- التقارير المالية والتحليلات -->
+    <div class="section-title">💰 التقارير المالية والتحليلات</div>
+    <div class="reports-grid">
+        <!-- تقرير الأرباح -->
+        <div class="report-card">
+                         <div class="d-flex justify-content-between align-items-center mb-3">
+                 <h5 style="color: #1f2937; font-weight: 700; margin: 0;">
+                     <i class="fas fa-chart-line me-2" style="color: #10b981;"></i>
+                     الأرباح والخسائر
+                 </h5>
+                                 <a href="{% url 'port:financial_reports' %}" class="btn btn-sm" 
+                    style="background: #10b981; color: white; border: 1px solid #10b981; font-weight: 600;">
+                     عرض التفاصيل
+                 </a>
+            </div>
+            <div class="chart-container">
+                <div class="row text-center">
+                                         <div class="col-4">
+                         <div style="color: #10b981; font-size: 1.5rem; font-weight: bold;">
+                             {{ financial_report.company_income|floatformat:0|default:"0" }}
+                         </div>
+                         <small style="color: #6b7280; font-weight: 600;">إجمالي الدخل</small>
+                     </div>
+                     <div class="col-4">
+                         <div style="color: #ef4444; font-size: 1.5rem; font-weight: bold;">
+                             {{ financial_report.company_payments|add:financial_report.driver_payments|floatformat:0|default:"0" }}
+                         </div>
+                         <small style="color: #6b7280; font-weight: 600;">إجمالي المصروفات</small>
+                     </div>
+                     <div class="col-4">
+                         <div style="color: {% if financial_report.net_profit >= 0 %}#3b82f6{% else %}#ef4444{% endif %}; font-size: 1.5rem; font-weight: bold;">
+                             {{ financial_report.net_profit|floatformat:0|default:"0" }}
+                         </div>
+                         <small style="color: #6b7280; font-weight: 600;">صافي الربح</small>
+                     </div>
+                </div>
+                                 <div class="progress mt-3" style="height: 10px; border-radius: 5px; background: rgba(255,255,255,0.1);">
+                     {% if financial_report.profit_width > 0 %}
+                         <div class="progress-bar" style="background: linear-gradient(90deg, #10b981, #065f46);" 
+                              role="progressbar" style="width: {{ financial_report.profit_width }}%"></div>
+                     {% endif %}
+                 </div>
+                 <div class="text-center mt-2">
+                     <small style="color: #6b7280; font-weight: 600;">
+                         معدل الربحية: {{ financial_report.profit_percentage|floatformat:1 }}%
+                     </small>
+                 </div>
+            </div>
+        </div>
+
+        <!-- تقرير المعاملات -->
+        <div class="report-card">
+                         <div class="d-flex justify-content-between align-items-center mb-3">
+                 <h5 style="color: #1f2937; font-weight: 700; margin: 0;">
+                     <i class="fas fa-exchange-alt me-2" style="color: #3b82f6;"></i>
+                     المعاملات المالية
+                 </h5>
+                                 <a href="{% url 'port:company_transactions_list' %}" class="btn btn-sm" 
+                    style="background: #3b82f6; color: white; border: 1px solid #3b82f6; font-weight: 600;">
+                     إدارة المعاملات
+                 </a>
+            </div>
+            <div class="chart-container">
+                <div class="row text-center">
+                                         <div class="col-6">
+                         <div class="mb-3">
+                             <div style="color: #3b82f6; font-size: 1.8rem; font-weight: bold;">
+                                 {{ financial_report.total_transactions|default:"0" }}
+                             </div>
+                             <small style="color: #6b7280; font-weight: 600;">إجمالي المعاملات</small>
+                         </div>
+                     </div>
+                     <div class="col-6">
+                         <div class="mb-3">
+                             <div style="color: #1e40af; font-size: 1.8rem; font-weight: bold;">
+                                 {{ companies_report.total|default:"0" }}
+                             </div>
+                             <small style="color: #6b7280; font-weight: 600;">الشركات النشطة</small>
+                         </div>
+                     </div>
+                </div>
+                                 <div class="mt-3">
+                     <a href="{% url 'port:add_company_transaction' %}" class="btn w-100 mb-2" 
+                        style="background: #065f46; color: white; border: 1px solid #065f46; font-weight: 600;">
+                         <i class="fas fa-plus me-2"></i> إضافة معاملة شركة
+                     </a>
+                     <a href="{% url 'port:add_driver_transaction' %}" class="btn w-100" 
+                        style="background: #1e40af; color: white; border: 1px solid #1e40af; font-weight: 600;">
+                         <i class="fas fa-plus me-2"></i> إضافة معاملة سائق
+                     </a>
+                 </div>
+            </div>
+        </div>
+
+        <!-- تقرير الأنشطة -->
+        <div class="report-card">
+                         <div class="d-flex justify-content-between align-items-center mb-3">
+                 <h5 style="color: #1f2937; font-weight: 700; margin: 0;">
+                     <i class="fas fa-activity me-2" style="color: #ef4444;"></i>
+                     نشاط اليوم
+                 </h5>
+                 <span class="badge" style="background: #ef4444; color: white; font-weight: 600;">
+                     مباشر
+                 </span>
+             </div>
+                         <div class="chart-container">
+                 <div class="notification-widget" style="background: #f9fafb; border: 2px solid #e5e7eb; margin-bottom: 0;">
+                     <div class="notification-item" style="color: #374151;">
+                         <div class="notification-icon" style="background: var(--success-gradient);">
+                             <i class="fas fa-plus"></i>
+                         </div>
+                         <div>
+                             <div style="font-weight: 700; color: #1f2937;">رحلة جديدة</div>
+                             <small style="color: #6b7280; font-weight: 500;">تم إضافة رحلة جديدة قبل ساعة</small>
+                         </div>
+                     </div>
+                     <div class="notification-item" style="color: #374151;">
+                         <div class="notification-icon" style="background: var(--info-gradient);">
+                             <i class="fas fa-edit"></i>
+                         </div>
+                         <div>
+                             <div style="font-weight: 700; color: #1f2937;">تحديث معاملة</div>
+                             <small style="color: #6b7280; font-weight: 500;">تم تحديث معاملة مالية قبل ساعتين</small>
+                         </div>
+                     </div>
+                     <div class="notification-item" style="color: #374151;">
+                         <div class="notification-icon" style="background: var(--warning-gradient);">
+                             <i class="fas fa-bell"></i>
+                         </div>
+                         <div>
+                             <div style="font-weight: 700; color: #1f2937;">تذكير مهم</div>
+                             <small style="color: #6b7280; font-weight: 500;">موعد صيانة شاحنة غداً</small>
+                         </div>
+                     </div>
+                 </div>
+             </div>
+        </div>
+    </div>
+
+    <!-- الوصول السريع -->
+    <div class="section-title">🚀 الوصول السريع</div>
+    <div class="quick-access-grid">
+                 <a href="{% url 'port:add_item' 'order' %}" class="quick-access-btn">
+             <i class="fas fa-file-plus fa-2x mb-2" style="color: #065f46;"></i>
+             <div style="font-weight: 600;">إضافة إذن</div>
+             <small style="opacity: 0.8;">إذن تسليم جديد</small>
+         </a>
+         <a href="{% url 'port:add_item' 'container' %}" class="quick-access-btn">
+             <i class="fas fa-box fa-2x mb-2" style="color: #1e40af;"></i>
+             <div style="font-weight: 600;">إضافة حاوية</div>
+             <small style="opacity: 0.8;">حاوية جديدة</small>
+         </a>
+         <a href="{% url 'port:add_item' 'driver' %}" class="quick-access-btn">
+             <i class="fas fa-user-plus fa-2x mb-2" style="color: #92400e;"></i>
+             <div style="font-weight: 600;">إضافة سائق</div>
+             <small style="opacity: 0.8;">سائق جديد</small>
+         </a>
+         <a href="{% url 'port:add_item' 'truck' %}" class="quick-access-btn">
+             <i class="fas fa-truck fa-2x mb-2" style="color: #991b1b;"></i>
+             <div style="font-weight: 600;">إضافة شاحنة</div>
+             <small style="opacity: 0.8;">شاحنة جديدة</small>
+         </a>
+         <a href="{% url 'port:add_trip' %}" class="quick-access-btn">
+             <i class="fas fa-route fa-2x mb-2" style="color: var(--corporate-navy);"></i>
+             <div style="font-weight: 600;">رحلة جديدة</div>
+             <small style="opacity: 0.8;">إنشاء رحلة</small>
+         </a>
+         <a href="{% url 'port:add_company' %}" class="quick-access-btn">
+             <i class="fas fa-building fa-2x mb-2" style="color: #10b981;"></i>
+             <div style="font-weight: 600;">إضافة شركة</div>
+             <small style="opacity: 0.8;">شركة جديدة</small>
+         </a>
+    </div>
+
+    <!-- الأنشطة الأخيرة -->
+    <div class="section-title mt-4">📋 آخر الأنشطة</div>
+    <div class="row">
+        <div class="col-md-8">
+            {% include 'port/partials/recent_activity.html' %}
+        </div>
+        <div class="col-md-4">
+            {% include 'port/partials/quick_actions.html' %}
         </div>
     </div>
 </div>
@@ -83,45 +859,113 @@
 {% block extra_js %}
 <script src="{% static 'js/dashboard.js' %}"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // تحديث التاريخ والوقت
-        function updateDateTime() {
-            const now = new Date();
-            const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-            const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit' };
+document.addEventListener('DOMContentLoaded', function() {
+    // تحديث التاريخ والوقت
+    function updateDateTime() {
+        const now = new Date();
+        const dateOptions = { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        };
+        const timeOptions = { 
+            hour: '2-digit', 
+            minute: '2-digit', 
+            second: '2-digit' 
+        };
+        
+        document.getElementById('currentDate').textContent = now.toLocaleDateString('ar-IQ', dateOptions);
+        document.getElementById('digitalTime').textContent = now.toLocaleTimeString('ar-IQ', timeOptions);
+    }
+    
+    updateDateTime();
+    setInterval(updateDateTime, 1000);
+    
+    // تأثير العد التصاعدي للأرقام مع بريق
+    function animateCounter(element, finalValue, duration = 2000) {
+        let currentValue = 0;
+        const increment = finalValue / (duration / 16);
+        
+        // إضافة تأثير متألق
+        element.style.transition = 'all 0.3s ease';
+        element.style.textShadow = '0 0 10px rgba(59, 130, 246, 0.5)';
+        
+        const timer = setInterval(() => {
+            currentValue += increment;
             
-            document.getElementById('currentDate').textContent = now.toLocaleDateString('ar-IQ', dateOptions);
-            document.getElementById('currentTime').textContent = now.toLocaleTimeString('ar-IQ', timeOptions);
-        }
-        
-        updateDateTime();
-        setInterval(updateDateTime, 1000);
-        
-        // تحريك الأرقام في البطاقات الإحصائية
-        document.querySelectorAll('.stat-card-value').forEach(element => {
-            const finalValue = parseInt(element.textContent);
-            let currentValue = 0;
-            const duration = 1500;
-            const stepTime = Math.abs(Math.floor(duration / finalValue));
-            
-            const timer = setInterval(() => {
-                currentValue += 1;
-                element.textContent = currentValue;
-                
-                if (currentValue >= finalValue) {
-                    clearInterval(timer);
-                    element.textContent = finalValue;
-                }
-            }, stepTime);
-        });
-        
-        // زر تحديث لوحة التحكم
-        document.getElementById('refreshDashboard').addEventListener('click', function() {
-            this.classList.add('rotating');
+            if (currentValue >= finalValue) {
+                clearInterval(timer);
+                element.textContent = finalValue.toLocaleString();
+                // إضافة نبضة نهائية
+                element.style.transform = 'scale(1.1)';
+                setTimeout(() => {
+                    element.style.transform = 'scale(1)';
+                    element.style.textShadow = '2px 2px 4px rgba(0, 0, 0, 0.1)';
+                }, 300);
+            } else {
+                element.textContent = Math.floor(currentValue).toLocaleString();
+            }
+        }, 16);
+    }
+    
+    // تطبيق التأثير على جميع العدادات
+    const counters = [
+        { id: 'total-orders-counter', value: {{ total_orders|default:0 }} },
+        { id: 'containers-counter', value: {{ containers_report.total|default:0 }} },
+        { id: 'drivers-counter', value: {{ drivers_count|default:0 }} },
+        { id: 'trucks-counter', value: {{ trucks_report.total|default:0 }} }
+    ];
+    
+    counters.forEach(counter => {
+        const element = document.getElementById(counter.id);
+        if (element && counter.value > 0) {
+            element.textContent = '0';
             setTimeout(() => {
-                window.location.reload();
-            }, 500);
-        });
+                animateCounter(element, counter.value);
+            }, Math.random() * 500);
+        }
     });
+    
+    // تأثيرات إضافية
+    const cards = document.querySelectorAll('.modern-stat-card');
+    cards.forEach((card, index) => {
+        card.style.animationDelay = `${index * 0.1}s`;
+        card.style.animation = 'slideInUp 0.6s ease forwards';
+    });
+    
+    // إضافة تأثير اهتزاز للإشعارات
+    setInterval(() => {
+        const notificationIcon = document.querySelector('.notification-icon');
+        if (notificationIcon) {
+            notificationIcon.style.animation = 'pulse 0.5s ease';
+            setTimeout(() => {
+                notificationIcon.style.animation = '';
+            }, 500);
+        }
+    }, 5000);
+});
+
+// إضافة الكيفريمز للتأثيرات
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideInUp {
+        from {
+            transform: translateY(30px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+    
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); }
+    }
+`;
+document.head.appendChild(style);
 </script>
 {% endblock %}

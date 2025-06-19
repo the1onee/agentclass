@@ -330,11 +330,82 @@
             background: linear-gradient(45deg, #ef4444, #f87171);
         }
 
-        .navbar.bg-gradient-primary, .navbar.bg-gradient-primary .navbar-brand, .navbar.bg-gradient-primary .nav-link, .navbar.bg-gradient-primary .nav-link:visited, .navbar.bg-gradient-primary .nav-link:active {
-            color: #fff !important;
+        /* تصميم الشريط الغامق المحدث */
+        .bg-dark-enhanced {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%) !important;
+            border-bottom: 3px solid #007bff;
         }
-        .navbar.bg-gradient-primary .nav-link:hover, .navbar.bg-gradient-primary .nav-link.active {
-            color: #fbbf24 !important;
+
+        .navbar.bg-dark-enhanced {
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .navbar.bg-dark-enhanced .navbar-brand {
+            color: #ffffff !important;
+            font-weight: 700;
+            font-size: 1.4rem;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .navbar.bg-dark-enhanced .nav-link {
+            color: #e9ecef !important;
+            font-weight: 600;
+            font-size: 1rem;
+            text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin: 2px;
+        }
+
+        .navbar.bg-dark-enhanced .nav-link:hover {
+            color: #007bff !important;
+            background-color: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .navbar.bg-dark-enhanced .nav-link.active {
+            color: #007bff !important;
+            background-color: rgba(0, 123, 255, 0.2);
+        }
+
+        .navbar.bg-dark-enhanced .dropdown-menu {
+            background-color: #2d2d2d;
+            border: 1px solid #495057;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+        }
+
+        .navbar.bg-dark-enhanced .dropdown-item {
+            color: #e9ecef !important;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .navbar.bg-dark-enhanced .dropdown-item:hover {
+            background-color: #007bff;
+            color: #ffffff !important;
+        }
+
+        .navbar.bg-dark-enhanced .dropdown-item.text-danger:hover {
+            background-color: #dc3545;
+            color: #ffffff !important;
+        }
+
+        .navbar.bg-dark-enhanced .dropdown-divider {
+            border-color: #495057;
+        }
+
+        /* تحسين أيقونات الشريط */
+        .navbar .nav-link i {
+            font-size: 1.1rem;
+            margin-left: 6px;
+        }
+
+        .navbar .dropdown-item i {
+            font-size: 1rem;
+            margin-left: 8px;
+            width: 20px;
+            text-align: center;
         }
     </style>
     <!-- Select2 CSS -->
@@ -346,35 +417,112 @@
 </head>
 <body>
     <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-gradient-primary">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark-enhanced shadow-lg">
         <div class="container-fluid">
-            <a class="navbar-brand" href="{% url 'port:home' %}">نظام إدارة المندوب</a>
+            <a class="navbar-brand fw-bold" href="{% url 'port:home' %}">
+                <i class="fas fa-ship me-2"></i>
+                الرئيسية
+            </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
+                   
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'port:delivery_orders' %}">أوامر التسليم</a>
+                        <a class="nav-link fw-semibold" href="{% url 'port:delivery_orders' %}">
+                            <i class="fas fa-file-alt me-1"></i>
+                            أوامر التسليم
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'port:containers_list' %}">الحاويات</a>
+                        <a class="nav-link fw-semibold" href="{% url 'port:containers_list' %}">
+                            <i class="fas fa-box me-1"></i>
+                            الحاويات
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'port:drivers_list' %}">السائقين</a>
+                        <a class="nav-link fw-semibold" href="{% url 'port:drivers_list' %}">
+                            <i class="fas fa-user-tie me-1"></i>
+                            السائقين
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'port:trucks_list' %}">الشاحنات</a>
+                        <a class="nav-link fw-semibold" href="{% url 'port:trucks_list' %}">
+                            <i class="fas fa-truck me-1"></i>
+                            الشاحنات
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'port:trip_list' %}">الرحلات</a>
+                        <a class="nav-link fw-semibold" href="{% url 'port:trip_list' %}">
+                            <i class="fas fa-route me-1"></i>
+                            الرحلات
+                        </a>
                     </li>
-                    
+                    <li class="nav-item">
+                        <a class="nav-link fw-semibold" href="{% url 'port:companies_list' %}">
+                            <i class="fas fa-building me-1"></i>
+                            الشركات
+                        </a>
+                    </li>
+                    <!-- قائمة المالية -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle fw-semibold" href="#" id="financialDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-chart-line me-1"></i>
+                            المالية
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="financialDropdown">
+                            <li>
+                                <a class="dropdown-item" href="{% url 'port:company_transactions_list' %}">
+                                    <i class="fas fa-exchange-alt me-2"></i>
+                                    معاملات الشركات
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'port:driver_transactions_list' %}">
+                                    <i class="fas fa-user-check me-2"></i>
+                                    معاملات السائقين
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'port:driver_balances' %}">
+                                    <i class="fas fa-wallet me-2"></i>
+                                    أرصدة السائقين
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item" href="{% url 'port:financial_reports' %}">
+                                    <i class="fas fa-chart-bar me-2"></i>
+                                    التقارير المالية
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
                 </ul>
                 {% if user.is_authenticated %}
                 <div class="navbar-nav">
-                    <span class="nav-item nav-link text-light">{{ user.first_name }} {{ user.last_name }}</span>
-                    <a class="nav-link" href="{% url 'logout' %}">تسجيل الخروج</a>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle fw-semibold" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-user-circle me-1"></i>
+                            {{ user.first_name }} {{ user.last_name }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end" aria-labelledby="userDropdown">
+                            <li>
+                                <a class="dropdown-item" href="/users/account/">
+                                    <i class="fas fa-user-cog me-2"></i>
+                                    إعدادات الحساب
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item text-danger" href="/users/logout/">
+                                    <i class="fas fa-sign-out-alt me-2"></i>
+                                    تسجيل الخروج
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
                 </div>
                 {% endif %}
             </div>

@@ -1,0 +1,436 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}تفاصيل {{ company.name }} - نظام إدارة المندوب{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+<style>
+    .company-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 15px;
+        margin-bottom: 2rem;
+    }
+    .detail-card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        transition: transform 0.3s ease;
+    }
+    .detail-card:hover {
+        transform: translateY(-5px);
+    }
+    .info-section {
+        background: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 10px;
+        margin-bottom: 1rem;
+    }
+    .stat-card {
+        border-radius: 15px;
+        border: none;
+        transition: transform 0.3s ease;
+    }
+    .stat-card:hover {
+        transform: scale(1.05);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- Top Navigation Bar -->
+    <div class="top-nav-bar">
+        <div class="container-fluid">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h1 class="dashboard-title">
+                        <i class="fas fa-building me-2"></i>
+                        تفاصيل {{ company.name }}
+                        <small class="text-muted">معلومات كاملة عن الشركة</small>
+                    </h1>
+                </div>
+                <div class="col-md-6 text-end">
+                    <div class="btn-group">
+                        <a href="{% url 'port:companies_list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>
+                            العودة للقائمة
+                        </a>
+                        <a href="{% url 'port:edit_company' company.id %}" class="btn btn-warning">
+                            <i class="fas fa-edit me-2"></i>
+                            تعديل
+                        </a>
+                        <form method="post" action="{% url 'port:delete_company' company.id %}" class="d-inline" 
+                              onsubmit="return confirm('هل أنت متأكد من حذف هذه الشركة؟')">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-trash me-2"></i>
+                                حذف
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-fluid mt-4">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-2">
+                {% include 'port/partials/sidebar.html' %}
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-10">
+                <div class="dashboard-content">
+                    <!-- Company Header -->
+                    <div class="company-header text-center">
+                        <h2 class="mb-3">
+                            <i class="fas fa-building fa-2x mb-3"></i><br>
+                            {{ company.name }}
+                        </h2>
+                        <p class="mb-0">{{ company.get_company_type_display }} | {{ company.city }}, {{ company.country }}</p>
+                    </div>
+
+                    <!-- معلومات الشركة -->
+                    <div class="card detail-card mb-4">
+
+                <div class="card-body">
+                    <div class="row">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-info-circle me-2"></i>
+                                معلومات الشركة التفصيلية
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <!-- المعلومات الأساسية -->
+                                <div class="col-md-6">
+                                    <div class="info-section">
+                                        <h5 class="text-primary mb-3">
+                                            <i class="fas fa-info-circle me-2"></i>
+                                            معلومات أساسية
+                                        </h5>
+                            
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td><strong>اسم الشركة:</strong></td>
+                                    <td>{{ company.name }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>نوع الشركة:</strong></td>
+                                    <td>
+                                        <span class="badge bg-info">{{ company.get_company_type_display }}</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>رقم التسجيل:</strong></td>
+                                    <td><code>{{ company.registration_number }}</code></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>الرقم الضريبي:</strong></td>
+                                    <td>{{ company.tax_number|default:"غير محدد" }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>الحالة:</strong></td>
+                                    <td>
+                                        {% if company.status == 'active' %}
+                                            <span class="badge bg-success">{{ company.get_status_display }}</span>
+                                        {% elif company.status == 'inactive' %}
+                                            <span class="badge bg-warning">{{ company.get_status_display }}</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">{{ company.get_status_display }}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+
+                                    </div>
+                                </div>
+
+                                <!-- معلومات الاتصال -->
+                                <div class="col-md-6">
+                                    <div class="info-section">
+                                        <h5 class="text-success mb-3">
+                                            <i class="fas fa-phone me-2"></i>
+                                            معلومات الاتصال
+                                        </h5>
+                            
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td><strong>الشخص المسؤول:</strong></td>
+                                    <td>{{ company.contact_person }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>رقم الهاتف:</strong></td>
+                                    <td><a href="tel:{{ company.phone_number }}">{{ company.phone_number }}</a></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>البريد الإلكتروني:</strong></td>
+                                    <td>
+                                        {% if company.email %}
+                                            <a href="mailto:{{ company.email }}">{{ company.email }}</a>
+                                        {% else %}
+                                            غير محدد
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>العنوان:</strong></td>
+                                    <td>{{ company.address }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>المدينة:</strong></td>
+                                    <td>{{ company.city }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>البلد:</strong></td>
+                                    <td>{{ company.country }}</td>
+                                </tr>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- المعلومات المالية والتعاقدية -->
+                            <div class="row mt-4">
+                                <div class="col-12">
+                                    <h5 class="text-warning mb-3">
+                                        <i class="fas fa-money-bill me-2"></i>
+                                        معلومات مالية وتعاقدية
+                                    </h5>
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <div class="card stat-card text-white mb-3" style="background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-credit-card fa-2x mb-2"></i>
+                                            <h6>الحد الائتماني</h6>
+                                            <h4>{{ company.credit_limit|floatformat:0 }} دينار</h4>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <div class="card stat-card text-white mb-3" style="background: linear-gradient(45deg, #56ab2f 0%, #a8e6cf 100%);">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-calendar-check fa-2x mb-2"></i>
+                                            <h6>تاريخ بداية التعاقد</h6>
+                                            <h4>{{ company.contract_start_date }}</h4>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-4">
+                                    <div class="card stat-card text-white mb-3" style="background: linear-gradient(45deg, #ff9a9e 0%, #fecfef 100%);">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-calendar-times fa-2x mb-2"></i>
+                                            <h6>تاريخ انتهاء التعاقد</h6>
+                                            <h4>{{ company.contract_end_date|default:"غير محدد" }}</h4>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- التواريخ -->
+                            <div class="row mt-4">
+                                <div class="col-12">
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-calendar me-2"></i>
+                                        <strong>تم الإنشاء:</strong> {{ company.created_at|date:"Y-m-d H:i" }} | 
+                                        <strong>آخر تحديث:</strong> {{ company.updated_at|date:"Y-m-d H:i" }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- الإحصائيات المالية -->
+                    <div class="card detail-card mb-4">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-chart-line me-2"></i>
+                                الإحصائيات المالية
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="card stat-card text-white mb-3" style="background: linear-gradient(45deg, #28a745 0%, #20c997 100%);">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-arrow-up fa-2x mb-2"></i>
+                                            <h5>{{ financial_stats.total_income|floatformat:0 }}</h5>
+                                            <p>إجمالي الدخل (دينار)</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card stat-card text-white mb-3" style="background: linear-gradient(45deg, #dc3545 0%, #fd7e14 100%);">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-arrow-down fa-2x mb-2"></i>
+                                            <h5>{{ financial_stats.total_payments|floatformat:0 }}</h5>
+                                            <p>إجمالي المدفوعات (دينار)</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card stat-card text-white mb-3" style="background: linear-gradient(45deg, #007bff 0%, #6610f2 100%);">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-balance-scale fa-2x mb-2"></i>
+                                            <h5>{{ financial_stats.current_balance|floatformat:0 }}</h5>
+                                            <p>الرصيد الحالي (دينار)</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card stat-card text-white mb-3" style="background: linear-gradient(45deg, #17a2b8 0%, #6f42c1 100%);">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-check-circle fa-2x mb-2"></i>
+                                            <h5>{{ financial_stats.completed_transactions }}</h5>
+                                            <p>المعاملات المكتملة</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mt-3 text-center">
+                                <a href="{% url 'port:add_company_transaction' %}?company={{ company.id }}" class="btn btn-success btn-lg rounded-pill">
+                                    <i class="fas fa-plus me-2"></i>
+                                    إضافة معاملة مالية
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- المعاملات المالية الأخيرة -->
+                    <div class="card detail-card">
+                        <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="fas fa-history me-2"></i>
+                                المعاملات المالية الأخيرة
+                            </h5>
+                            <a href="{% url 'port:company_transactions_list' %}?company={{ company.id }}" class="btn btn-outline-light">
+                                عرض جميع المعاملات
+                            </a>
+                        </div>
+                <div class="card-body">
+                    {% if recent_transactions %}
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>نوع المعاملة</th>
+                                        <th>المبلغ</th>
+                                        <th>الوصف</th>
+                                        <th>الحالة</th>
+                                        <th>التاريخ</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for transaction in recent_transactions %}
+                                    <tr>
+                                        <td>
+                                            <span class="badge bg-secondary">{{ transaction.get_transaction_type_display }}</span>
+                                        </td>
+                                        <td>
+                                            <strong>{{ transaction.amount|floatformat:0 }} دينار</strong>
+                                        </td>
+                                        <td>{{ transaction.description|truncatechars:50 }}</td>
+                                        <td>
+                                            {% if transaction.status == 'completed' %}
+                                                <span class="badge bg-success">{{ transaction.get_status_display }}</span>
+                                            {% elif transaction.status == 'pending' %}
+                                                <span class="badge bg-warning">{{ transaction.get_status_display }}</span>
+                                            {% else %}
+                                                <span class="badge bg-danger">{{ transaction.get_status_display }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-muted">{{ transaction.transaction_date|date:"Y-m-d" }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                            <div class="text-center text-muted py-4">
+                                <i class="fas fa-receipt fa-3x mb-3"></i>
+                                <p>لا توجد معاملات مالية</p>
+                                <a href="{% url 'port:add_company_transaction' %}?company={{ company.id }}" class="btn btn-primary rounded-pill">
+                                    إضافة أول معاملة
+                                </a>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/dashboard.js' %}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // إضافة تأثيرات للبطاقات
+        document.querySelectorAll('.detail-card').forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-5px)';
+                this.style.boxShadow = '0 10px 25px rgba(0,0,0,0.15)';
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0)';
+                this.style.boxShadow = '0 5px 15px rgba(0,0,0,0.1)';
+            });
+        });
+        
+        // تأثيرات للبطاقات الإحصائية
+        document.querySelectorAll('.stat-card').forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'scale(1.05)';
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = 'scale(1)';
+            });
+        });
+        
+        // تحديث الأرقام بتأثير الحركة
+        document.querySelectorAll('.stat-card h5').forEach(element => {
+            const text = element.textContent.replace(/[^\d]/g, '');
+            if (!isNaN(text) && text !== '') {
+                const finalValue = parseInt(text);
+                let currentValue = 0;
+                const duration = 1500;
+                const stepTime = Math.abs(Math.floor(duration / finalValue));
+                
+                const timer = setInterval(() => {
+                    currentValue += Math.ceil(finalValue / 50);
+                    if (currentValue >= finalValue) {
+                        currentValue = finalValue;
+                        clearInterval(timer);
+                    }
+                    element.textContent = currentValue.toLocaleString();
+                }, stepTime);
+            }
+        });
+        
+        // تأكيد الحذف
+        const deleteForm = document.querySelector('form[action*="delete"]');
+        if (deleteForm) {
+            deleteForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                if (confirm('هل أنت متأكد من حذف شركة {{ company.name }}؟ هذا الإجراء لا يمكن التراجع عنه.')) {
+                    this.submit();
+                }
+            });
+        }
+    });
+</script>
+{% endblock %} 

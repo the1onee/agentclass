@@ -1,0 +1,417 @@
+{% extends 'base.html' %}
+
+{% block title %}المعاملات المالية مع الشركات{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header Section -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-gradient-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h3 class="mb-0">
+                            <i class="fas fa-exchange-alt me-2"></i>
+                            المعاملات المالية مع الشركات
+                        </h3>
+                        <a href="{% url 'port:add_company_transaction' %}" class="btn btn-light btn-sm">
+                            <i class="fas fa-plus me-2"></i>
+                            إضافة معاملة جديدة
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statistics Cards -->
+            <div class="row mb-4">
+                <div class="col-xl-3 col-md-6">
+                    <div class="card bg-primary text-white shadow">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 class="fw-bold">{{ stats.total|default:"0" }}</h4>
+                                    <p class="mb-0">إجمالي المعاملات</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-list-alt fa-2x opacity-75"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6">
+                    <div class="card bg-success text-white shadow">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 class="fw-bold">{{ stats.total_income|floatformat:0|default:"0" }}</h4>
+                                    <p class="mb-0">إجمالي الدخل (دينار)</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-arrow-up fa-2x opacity-75"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6">
+                    <div class="card bg-danger text-white shadow">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 class="fw-bold">{{ stats.total_payments|floatformat:0|default:"0" }}</h4>
+                                    <p class="mb-0">إجمالي المدفوعات (دينار)</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-arrow-down fa-2x opacity-75"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-md-6">
+                    <div class="card bg-warning text-white shadow">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4 class="fw-bold">{{ stats.pending|default:"0" }}</h4>
+                                    <p class="mb-0">معاملات معلقة</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-clock fa-2x opacity-75"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search and Filter Section -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="fas fa-search me-2 text-primary"></i>
+                        البحث والفلترة
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-lg-3 col-md-6">
+                            <label class="form-label fw-semibold">البحث في النص</label>
+                            {{ search_form.search }}
+                        </div>
+                        <div class="col-lg-2 col-md-6">
+                            <label class="form-label fw-semibold">نوع المعاملة</label>
+                            {{ search_form.transaction_type }}
+                        </div>
+                        <div class="col-lg-2 col-md-6">
+                            <label class="form-label fw-semibold">الحالة</label>
+                            {{ search_form.status }}
+                        </div>
+                        <div class="col-lg-2 col-md-6">
+                            <label class="form-label fw-semibold">من تاريخ</label>
+                            {{ search_form.date_from }}
+                        </div>
+                        <div class="col-lg-2 col-md-6">
+                            <label class="form-label fw-semibold">إلى تاريخ</label>
+                            {{ search_form.date_to }}
+                        </div>
+                        <div class="col-lg-1 col-md-6 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Transactions Table -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="fas fa-table me-2 text-primary"></i>
+                        قائمة المعاملات
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if transactions %}
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th class="text-center">#</th>
+                                        <th>الشركة</th>
+                                        <th>نوع المعاملة</th>
+                                        <th>المبلغ</th>
+                                        <th>طريقة الدفع</th>
+                                        <th>الحالة</th>
+                                        <th>التاريخ</th>
+                                        <th>المرجع</th>
+                                        <th>الوصف</th>
+                                        <th class="text-center">الإجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for transaction in transactions %}
+                                    <tr class="align-middle">
+                                        <td class="text-center">
+                                            <span class="badge bg-secondary">{{ forloop.counter }}</span>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar bg-primary text-white rounded-circle me-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                                    <i class="fas fa-building"></i>
+                                                </div>
+                                                <div>
+                                                    <div class="fw-bold">{{ transaction.company.name }}</div>
+                                                    <small class="text-muted">{{ transaction.company.contact_person }}</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            {% if transaction.transaction_type in 'income,commission,service_fee' %}
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                                    <i class="fas fa-arrow-up me-1"></i>
+                                                    {{ transaction.get_transaction_type_display }}
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-warning-subtle text-warning border border-warning-subtle">
+                                                    <i class="fas fa-arrow-down me-1"></i>
+                                                    {{ transaction.get_transaction_type_display }}
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if transaction.transaction_type in 'income,commission,service_fee' %}
+                                                <span class="fw-bold text-success">
+                                                    <i class="fas fa-plus me-1"></i>
+                                                    {{ transaction.amount|floatformat:0 }} د.ع
+                                                </span>
+                                            {% else %}
+                                                <span class="fw-bold text-danger">
+                                                    <i class="fas fa-minus me-1"></i>
+                                                    {{ transaction.amount|floatformat:0 }} د.ع
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-info-subtle text-info border border-info-subtle">
+                                                {{ transaction.get_payment_method_display }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% if transaction.status == 'completed' %}
+                                                <span class="badge bg-success">
+                                                    <i class="fas fa-check-circle me-1"></i>مكتمل
+                                                </span>
+                                            {% elif transaction.status == 'pending' %}
+                                                <span class="badge bg-warning">
+                                                    <i class="fas fa-clock me-1"></i>معلق
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-danger">
+                                                    <i class="fas fa-times-circle me-1"></i>ملغي
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="text-muted">
+                                                <div>{{ transaction.transaction_date|date:"Y-m-d" }}</div>
+                                                <small>{{ transaction.transaction_date|date:"H:i" }}</small>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            {% if transaction.reference_number %}
+                                                <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+                                                    {{ transaction.reference_number }}
+                                                </span>
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="text-truncate" style="max-width: 150px;" title="{{ transaction.description }}">
+                                                {{ transaction.description|truncatechars:40 }}
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="btn-group" role="group">
+                                                {% if transaction.delivery_order %}
+                                                    <a href="{% url 'port:delivery_order_detail' transaction.delivery_order.id %}" 
+                                                       class="btn btn-sm btn-outline-info" 
+                                                       title="عرض إذن التسليم">
+                                                        <i class="fas fa-file-alt"></i>
+                                                    </a>
+                                                {% endif %}
+                                                {% if transaction.trip %}
+                                                    <a href="{% url 'port:trip_detail' transaction.trip.id %}" 
+                                                       class="btn btn-sm btn-outline-primary" 
+                                                       title="عرض الرحلة">
+                                                        <i class="fas fa-truck"></i>
+                                                    </a>
+                                                {% endif %}
+                                                <a href="{% url 'port:company_detail' transaction.company.id %}" 
+                                                   class="btn btn-sm btn-outline-success" 
+                                                   title="عرض تفاصيل الشركة">
+                                                    <i class="fas fa-building"></i>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <div class="mb-3">
+                                <i class="fas fa-exchange-alt fa-4x text-muted"></i>
+                            </div>
+                            <h4 class="text-muted mb-3">لا توجد معاملات مالية</h4>
+                            <p class="text-muted mb-4">لم يتم العثور على أي معاملات مالية مع الشركات بالمعايير المحددة.</p>
+                            <a href="{% url 'port:add_company_transaction' %}" class="btn btn-primary">
+                                <i class="fas fa-plus me-2"></i>
+                                إضافة معاملة جديدة
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            {% if transactions.has_other_pages %}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if transactions.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.transaction_type %}&transaction_type={{ request.GET.transaction_type }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.date_from %}&date_from={{ request.GET.date_from }}{% endif %}{% if request.GET.date_to %}&date_to={{ request.GET.date_to }}{% endif %}">
+                                الأولى
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ transactions.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.transaction_type %}&transaction_type={{ request.GET.transaction_type }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.date_from %}&date_from={{ request.GET.date_from }}{% endif %}{% if request.GET.date_to %}&date_to={{ request.GET.date_to }}{% endif %}">
+                                السابقة
+                            </a>
+                        </li>
+                    {% endif %}
+
+                    {% for num in transactions.paginator.page_range %}
+                        {% if transactions.number == num %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                        {% elif num > transactions.number|add:'-3' and num < transactions.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.transaction_type %}&transaction_type={{ request.GET.transaction_type }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.date_from %}&date_from={{ request.GET.date_from }}{% endif %}{% if request.GET.date_to %}&date_to={{ request.GET.date_to }}{% endif %}">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if transactions.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ transactions.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.transaction_type %}&transaction_type={{ request.GET.transaction_type }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.date_from %}&date_from={{ request.GET.date_from }}{% endif %}{% if request.GET.date_to %}&date_to={{ request.GET.date_to }}{% endif %}">
+                                التالية
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ transactions.paginator.num_pages }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.transaction_type %}&transaction_type={{ request.GET.transaction_type }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.date_from %}&date_from={{ request.GET.date_from }}{% endif %}{% if request.GET.date_to %}&date_to={{ request.GET.date_to }}{% endif %}">
+                                الأخيرة
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+}
+
+.card {
+    border: none;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.card-header {
+    border-bottom: 1px solid rgba(0,0,0,.125);
+}
+
+.table th {
+    border-top: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+
+.table td {
+    vertical-align: middle;
+    border-top: 1px solid #f1f3f4;
+}
+
+.table tbody tr:hover {
+    background-color: #f8f9fa !important;
+}
+
+.badge {
+    font-size: 0.75rem;
+    padding: 0.375rem 0.5rem;
+}
+
+.avatar {
+    font-size: 0.875rem;
+}
+
+.btn-group .btn {
+    border-radius: 0.375rem;
+    margin: 0 1px;
+}
+
+.opacity-75 {
+    opacity: 0.75;
+}
+
+.form-control, .form-select {
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    transition: all 0.2s ease-in-out;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+.fw-semibold {
+    font-weight: 600 !important;
+}
+
+.text-truncate {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+/* تحسينات للعرض على الأجهزة المحمولة */
+@media (max-width: 768px) {
+    .table-responsive {
+        font-size: 0.875rem;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+    
+    .btn-group .btn {
+        padding: 0.25rem 0.5rem;
+    }
+}
+</style>
+{% endblock %} 

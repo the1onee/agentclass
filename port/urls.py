@@ -47,4 +47,23 @@ urlpatterns = [
     path('api/dashboard-stats/', views.dashboard_stats_api, name='dashboard_stats_api'),
     path('drivers/edit/<int:driver_id>/', views.edit_driver, name='edit_driver'),
     path('drivers/delete/<int:driver_id>/', views.delete_driver, name='delete_driver'),
+    
+    # ===== مسارات إدارة الشركات =====
+    path('companies/', views.companies_list, name='companies_list'),
+    path('companies/add/', views.add_company, name='add_company'),
+    path('companies/<int:company_id>/', views.company_detail, name='company_detail'),
+    path('companies/<int:company_id>/edit/', views.edit_company, name='edit_company'),
+    path('companies/<int:company_id>/delete/', views.delete_company, name='delete_company'),
+    
+    # ===== مسارات المعاملات المالية مع السائقين =====
+    path('financial/driver-transactions/', views.driver_transactions_list, name='driver_transactions_list'),
+    path('financial/driver-transactions/add/', views.add_driver_transaction, name='add_driver_transaction'),
+    path('financial/driver-balances/', views.driver_balances, name='driver_balances'),
+    
+    # ===== مسارات المعاملات المالية مع الشركات =====
+    path('financial/company-transactions/', views.company_transactions_list, name='company_transactions_list'),
+    path('financial/company-transactions/add/', views.add_company_transaction, name='add_company_transaction'),
+    
+    # ===== مسارات التقارير المالية =====
+    path('financial/reports/', views.financial_reports, name='financial_reports'),
 ] 

@@ -312,26 +312,23 @@ class Trip(models.Model):
     truck_plate = models.CharField(max_length=50, blank=True, null=True, verbose_name="رقم لوحة الشاحنة")
 
     def __str__(self):
-        return f"رحلة {self.delivery_order.order_number}"
-
+        return f'رحلة {self.delivery_order.order_number} - {self.get_status_display()}'
+    
     def check_auto_complete(self):
-        """التحقق مما إذا كان يجب تحديث حالة الرحلة تلقائياً"""
-        if self.status == 'active' and self.created_at:
-            three_days_ago = timezone.now() - timedelta(days=3)
-            if self.created_at <= three_days_ago:
-                self.status = 'completed'
-                self.end_time = timezone.now()
-                self.save(update_fields=['status', 'end_time'])
-                return True
+        """تحقق من إمكانية إنجاز الرحلة تلقائياً"""
+        # إذا كانت جميع الحاويات مكتملة
+        if self.containers.filter(status__in=['LOADING', 'GENERAL_CARGO']).count() == 0:
+            self.status = 'completed'
+            self.end_time = timezone.now()
+            self.save()
+            return True
         return False
 
     def save(self, *args, **kwargs):
-        if not self.end_time:
-            self.end_time = self.start_time + timedelta(days=2)
-             
-        # إذا كانت الرحلة جديدة، تعيين وقت الإنشاء
-        if not self.id:
-            self.created_at = timezone.now()
+        if not self.pk:  # رحلة جديدة
+            if not self.start_time:
+                self.start_time = timezone.now()
+        
         super().save(*args, **kwargs)
 
     class Meta:
@@ -341,9 +338,408 @@ class Trip(models.Model):
         constraints = [
             models.UniqueConstraint(
                 fields=['delivery_order'],
-                name='unique_delivery_order_trip'
+                condition=models.Q(status__in=['pending', 'active']),
+                name='unique_active_trip_per_order'
             )
-        ] 
+        ]
 
-    #قم بعمل يوزر ل مخول طباعه واريده يعمل علي الموديل السابق
+
+# ===== نماذج إدارة الشركات =====
+class Company(models.Model):
+    COMPANY_TYPES = [
+        ('shipping', 'شحن'),
+        ('transport', 'نقل'),
+        ('logistics', 'لوجستية'),
+        ('commercial', 'تجارية'),
+        ('clearance', 'تخليص'),
+        ('other', 'أخرى'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('active', 'نشط'),
+        ('inactive', 'غير نشط'),
+        ('suspended', 'معلق'),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='companies',
+        verbose_name='المستخدم'
+    )
+    name = models.CharField(max_length=200, verbose_name='اسم الشركة')
+    company_type = models.CharField(
+        max_length=20,
+        choices=COMPANY_TYPES,
+        verbose_name='نوع الشركة'
+    )
+    registration_number = models.CharField(
+        max_length=50,
+        unique=True,
+        verbose_name='رقم التسجيل'
+    )
+    tax_number = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        verbose_name='الرقم الضريبي'
+    )
+    contact_person = models.CharField(max_length=100, verbose_name='الشخص المسؤول')
+    phone_number = models.CharField(max_length=15, verbose_name='رقم الهاتف')
+    email = models.EmailField(blank=True, null=True, verbose_name='البريد الإلكتروني')
+    address = models.TextField(verbose_name='العنوان')
+    city = models.CharField(max_length=100, verbose_name='المدينة')
+    country = models.CharField(max_length=100, default='العراق', verbose_name='البلد')
+    credit_limit = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        default=0,
+        verbose_name='الحد الائتماني (دينار)'
+    )
+    contract_start_date = models.DateField(verbose_name='تاريخ بداية التعاقد')
+    contract_end_date = models.DateField(
+        blank=True,
+        null=True,
+        verbose_name='تاريخ انتهاء التعاقد'
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='active',
+        verbose_name='حالة الشركة'
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاريخ الإنشاء')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='تاريخ التحديث')
+
+    class Meta:
+        verbose_name = 'شركة'
+        verbose_name_plural = 'شركات'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.name} - {self.registration_number}"
+
+    def current_balance(self):
+        """حساب الرصيد الحالي للشركة"""
+        transactions = self.company_transactions.all()
+        total_income = sum(t.amount for t in transactions if t.transaction_type in ['income', 'commission', 'service_fee'])
+        total_payments = sum(t.amount for t in transactions if t.transaction_type in ['payment', 'fine', 'advance'])
+        return total_income - total_payments
+
+
+# ===== نماذج إدارة الأموال =====
+
+class DriverFinancialAccount(models.Model):
+    """الحساب المالي لكل سائق"""
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        verbose_name='المستخدم'
+    )
+    driver = models.OneToOneField(
+        Driver,
+        on_delete=models.CASCADE,
+        related_name='financial_account',
+        verbose_name='السائق'
+    )
+    current_balance = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        default=0,
+        verbose_name='الرصيد الحالي (دينار)'
+    )
+    total_earned = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        default=0,
+        verbose_name='إجمالي المكاسب (دينار)'
+    )
+    total_deducted = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        default=0,
+        verbose_name='إجمالي المستقطعات (دينار)'
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاريخ الإنشاء')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='تاريخ التحديث')
+
+    class Meta:
+        verbose_name = 'حساب مالي للسائق'
+        verbose_name_plural = 'حسابات مالية للسائقين'
+
+    def __str__(self):
+        return f"حساب {self.driver.name} - الرصيد: {self.current_balance} دينار"
+
+    def update_balance(self):
+        """تحديث الرصيد بناءً على المعاملات"""
+        transactions = self.driver_transactions.all()
+        income = sum(t.amount for t in transactions if t.transaction_type in ['payment', 'bonus', 'fuel_allowance'])
+        deductions = sum(t.amount for t in transactions if t.transaction_type in ['deduction', 'fine', 'advance', 'maintenance'])
+        
+        self.total_earned = income
+        self.total_deducted = deductions
+        self.current_balance = income - deductions
+        self.save()
+
+
+class DriverTransaction(models.Model):
+    """المعاملات المالية مع السائقين"""
+    TRANSACTION_TYPES = [
+        ('payment', 'دفع للسائق'),
+        ('deduction', 'خصم من السائق'),
+        ('bonus', 'مكافأة'),
+        ('fine', 'غرامة'),
+        ('advance', 'سلفة'),
+        ('fuel_allowance', 'بدل وقود'),
+        ('maintenance', 'صيانة'),
+    ]
+    
+    PAYMENT_METHODS = [
+        ('cash', 'نقدي'),
+        ('bank_transfer', 'تحويل بنكي'),
+        ('check', 'شيك'),
+        ('mobile', 'موبايل'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('pending', 'معلق'),
+        ('completed', 'مكتمل'),
+        ('cancelled', 'ملغي'),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        verbose_name='المستخدم'
+    )
+    driver_account = models.ForeignKey(
+        DriverFinancialAccount,
+        on_delete=models.CASCADE,
+        related_name='driver_transactions',
+        verbose_name='حساب السائق'
+    )
+    transaction_type = models.CharField(
+        max_length=20,
+        choices=TRANSACTION_TYPES,
+        verbose_name='نوع المعاملة'
+    )
+    amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        verbose_name='المبلغ (دينار)'
+    )
+    description = models.TextField(verbose_name='الوصف')
+    payment_method = models.CharField(
+        max_length=20,
+        choices=PAYMENT_METHODS,
+        verbose_name='طريقة الدفع'
+    )
+    reference_number = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        verbose_name='رقم المرجع'
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pending',
+        verbose_name='حالة المعاملة'
+    )
+    transaction_date = models.DateTimeField(
+        default=timezone.now,
+        verbose_name='تاريخ المعاملة'
+    )
+    due_date = models.DateTimeField(
+        blank=True,
+        null=True,
+        verbose_name='تاريخ الاستحقاق'
+    )
+    trip = models.ForeignKey(
+        Trip,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='driver_transactions',
+        verbose_name='الرحلة المرتبطة'
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاريخ الإنشاء')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='تاريخ التحديث')
+
+    class Meta:
+        verbose_name = 'معاملة مالية مع السائق'
+        verbose_name_plural = 'معاملات مالية مع السائقين'
+        ordering = ['-transaction_date']
+
+    def __str__(self):
+        return f"{self.get_transaction_type_display()} - {self.driver_account.driver.name} - {self.amount} دينار"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # تحديث رصيد السائق عند حفظ المعاملة
+        if self.status == 'completed':
+            self.driver_account.update_balance()
+
+
+class CompanyTransaction(models.Model):
+    """المعاملات المالية مع الشركات"""
+    TRANSACTION_TYPES = [
+        ('income', 'دخل من الشركة'),
+        ('payment', 'دفع للشركة'),
+        ('commission', 'عمولة'),
+        ('service_fee', 'رسوم خدمة'),
+        ('fine', 'غرامة'),
+        ('refund', 'استرداد'),
+        ('advance', 'سلفة'),
+    ]
+    
+    PAYMENT_METHODS = [
+        ('cash', 'نقدي'),
+        ('bank_transfer', 'تحويل بنكي'),
+        ('check', 'شيك'),
+        ('mobile', 'موبايل'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('pending', 'معلق'),
+        ('completed', 'مكتمل'),
+        ('cancelled', 'ملغي'),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        verbose_name='المستخدم'
+    )
+    company = models.ForeignKey(
+        Company,
+        on_delete=models.CASCADE,
+        related_name='company_transactions',
+        verbose_name='الشركة'
+    )
+    transaction_type = models.CharField(
+        max_length=20,
+        choices=TRANSACTION_TYPES,
+        verbose_name='نوع المعاملة'
+    )
+    amount = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        verbose_name='المبلغ (دينار)'
+    )
+    description = models.TextField(verbose_name='الوصف')
+    payment_method = models.CharField(
+        max_length=20,
+        choices=PAYMENT_METHODS,
+        verbose_name='طريقة الدفع'
+    )
+    reference_number = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        verbose_name='رقم المرجع'
+    )
+    invoice_number = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        verbose_name='رقم الفاتورة'
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pending',
+        verbose_name='حالة المعاملة'
+    )
+    transaction_date = models.DateTimeField(
+        default=timezone.now,
+        verbose_name='تاريخ المعاملة'
+    )
+    due_date = models.DateTimeField(
+        blank=True,
+        null=True,
+        verbose_name='تاريخ الاستحقاق'
+    )
+    delivery_order = models.ForeignKey(
+        DeliveryOrder,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='company_transactions',
+        verbose_name='إذن التسليم المرتبط'
+    )
+    trip = models.ForeignKey(
+        Trip,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='company_transactions',
+        verbose_name='الرحلة المرتبطة'
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاريخ الإنشاء')
+    updated_at = models.DateTimeField(auto_now=True, verbose_name='تاريخ التحديث')
+
+    class Meta:
+        verbose_name = 'معاملة مالية مع الشركة'
+        verbose_name_plural = 'معاملات مالية مع الشركات'
+        ordering = ['-transaction_date']
+
+    def __str__(self):
+        return f"{self.get_transaction_type_display()} - {self.company.name} - {self.amount} دينار"
+
+
+class FinancialReport(models.Model):
+    """التقارير المالية"""
+    REPORT_TYPES = [
+        ('drivers_summary', 'ملخص السائقين'),
+        ('companies_summary', 'ملخص الشركات'),
+        ('monthly', 'تقرير شهري'),
+        ('yearly', 'تقرير سنوي'),
+        ('profit_loss', 'الأرباح والخسائر'),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        verbose_name='المستخدم'
+    )
+    report_type = models.CharField(
+        max_length=20,
+        choices=REPORT_TYPES,
+        verbose_name='نوع التقرير'
+    )
+    title = models.CharField(max_length=200, verbose_name='عنوان التقرير')
+    start_date = models.DateField(verbose_name='تاريخ البداية')
+    end_date = models.DateField(verbose_name='تاريخ النهاية')
+    total_income = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        default=0,
+        verbose_name='إجمالي الدخل (دينار)'
+    )
+    total_expenses = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        default=0,
+        verbose_name='إجمالي المصروفات (دينار)'
+    )
+    net_profit = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        default=0,
+        verbose_name='صافي الربح (دينار)'
+    )
+    report_data = models.JSONField(
+        default=dict,
+        verbose_name='بيانات التقرير'
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاريخ الإنشاء')
+
+    class Meta:
+        verbose_name = 'تقرير مالي'
+        verbose_name_plural = 'تقارير مالية'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.title} - {self.start_date} إلى {self.end_date}"
    

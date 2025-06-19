@@ -397,7 +397,7 @@
             const driverId = $(this).val();
             
             $.ajax({
-                url: `/port/containers/${containerId}/update-driver/`,
+                url: `/containers/${containerId}/update-driver/`,
                 method: 'POST',
                 data: JSON.stringify({ driver_id: driverId }),
                 contentType: 'application/json',
@@ -419,7 +419,7 @@
             const truckId = $(this).val();
             
             $.ajax({
-                url: `/port/containers/${containerId}/update-truck/`,
+                url: `/containers/${containerId}/update-truck/`,
                 method: 'POST',
                 data: JSON.stringify({ truck_id: truckId }),
                 contentType: 'application/json',
@@ -483,7 +483,7 @@
             
             if (confirm('هل أنت متأكد من إزالة هذه الحاوية من الرحلة؟')) {
                 $.ajax({
-                    url: `/port/trips/${tripId}/remove-container/${containerId}/`,
+                    url: `/trips/${tripId}/remove-container/${containerId}/`,
                     method: 'POST',
                     headers: {
                         'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').val()

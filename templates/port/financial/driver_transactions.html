@@ -1,0 +1,572 @@
+{% extends 'port/base.html' %}
+{% load static %}
+
+{% block title %}المعاملات المالية مع السائقين{% endblock %}
+
+{% block port_content %}
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-gradient-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h3 class="mb-0">
+                            <i class="fas fa-users me-2"></i>
+                            المعاملات المالية مع السائقين
+                        </h3>
+                        <div class="btn-group">
+                            <a href="{% url 'port:add_driver_transaction' %}" class="btn btn-light btn-sm">
+                                <i class="fas fa-plus me-2"></i>
+                                إضافة معاملة جديدة
+                            </a>
+                            <a href="{% url 'port:driver_balances' %}" class="btn btn-outline-light btn-sm">
+                                <i class="fas fa-balance-scale me-2"></i>
+                                أرصدة السائقين
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-lg-6 col-md-6">
+            <div class="stat-card bg-gradient-primary shadow-lg border-0">
+                <div class="stat-card-body">
+                    <div class="stat-card-icon">
+                        <i class="fas fa-list-alt"></i>
+                    </div>
+                    <div class="stat-card-info">
+                        <h5 class="stat-card-title">إجمالي المعاملات</h5>
+                        <div class="stat-card-value">{{ stats.total|default:"0" }}</div>
+                        <div class="stat-card-subtitle">معاملة مالية</div>
+                    </div>
+                </div>
+                <div class="stat-card-footer">
+                    <span class="stat-card-action">
+                        <i class="fas fa-chart-bar me-1"></i>
+                        جميع الفترات
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-lg-6 col-md-6">
+            <div class="stat-card bg-gradient-success shadow-lg border-0">
+                <div class="stat-card-body">
+                    <div class="stat-card-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="stat-card-info">
+                        <h5 class="stat-card-title">معاملات مكتملة</h5>
+                        <div class="stat-card-value">{{ stats.completed|default:"0" }}</div>
+                        <div class="stat-card-subtitle">معاملة مؤكدة</div>
+                    </div>
+                </div>
+                <div class="stat-card-footer">
+                    <span class="stat-card-action">
+                        <i class="fas fa-thumbs-up me-1"></i>
+                        تم التنفيذ
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-lg-6 col-md-6">
+            <div class="stat-card bg-gradient-warning shadow-lg border-0">
+                <div class="stat-card-body">
+                    <div class="stat-card-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stat-card-info">
+                        <h5 class="stat-card-title">معاملات معلقة</h5>
+                        <div class="stat-card-value">{{ stats.pending|default:"0" }}</div>
+                        <div class="stat-card-subtitle">بانتظار التنفيذ</div>
+                    </div>
+                </div>
+                <div class="stat-card-footer">
+                    <span class="stat-card-action">
+                        <i class="fas fa-hourglass-half me-1"></i>
+                        تحتاج موافقة
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-lg-6 col-md-6">
+            <div class="stat-card bg-gradient-info shadow-lg border-0">
+                <div class="stat-card-body">
+                    <div class="stat-card-icon">
+                        <i class="fas fa-money-bill-wave"></i>
+                    </div>
+                    <div class="stat-card-info">
+                        <h5 class="stat-card-title">إجمالي المبلغ</h5>
+                        <div class="stat-card-value">{{ stats.total_amount|floatformat:0|default:"0" }}</div>
+                        <div class="stat-card-subtitle">دينار عراقي</div>
+                    </div>
+                </div>
+                <div class="stat-card-footer">
+                    <span class="stat-card-action">
+                        <i class="fas fa-calculator me-1"></i>
+                        المعاملات المكتملة
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search and Filter Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-light border-0">
+                    <h5 class="mb-0">
+                        <i class="fas fa-search me-2 text-primary"></i>
+                        البحث والفلترة المتقدمة
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-lg-3 col-md-6">
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-search me-1"></i>
+                                البحث في النص
+                            </label>
+                            {{ search_form.search }}
+                        </div>
+                        <div class="col-lg-2 col-md-6">
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-tags me-1"></i>
+                                نوع المعاملة
+                            </label>
+                            {{ search_form.transaction_type }}
+                        </div>
+                        <div class="col-lg-2 col-md-6">
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-toggle-on me-1"></i>
+                                الحالة
+                            </label>
+                            {{ search_form.status }}
+                        </div>
+                        <div class="col-lg-2 col-md-6">
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-calendar-minus me-1"></i>
+                                من تاريخ
+                            </label>
+                            {{ search_form.date_from }}
+                        </div>
+                        <div class="col-lg-2 col-md-6">
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-calendar-plus me-1"></i>
+                                إلى تاريخ
+                            </label>
+                            {{ search_form.date_to }}
+                        </div>
+                        <div class="col-lg-1 col-md-6 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transactions Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-light border-0">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-table me-2 text-primary"></i>
+                            قائمة المعاملات المالية
+                            {% if transactions %}
+                                <span class="badge bg-primary ms-2">{{ transactions|length }}</span>
+                            {% endif %}
+                        </h5>
+                        {% if transactions %}
+                            <div class="btn-group btn-group-sm">
+                                <button type="button" class="btn btn-outline-success" onclick="exportToExcel()">
+                                    <i class="fas fa-file-excel me-1"></i>
+                                    تصدير Excel
+                                </button>
+                                <button type="button" class="btn btn-outline-primary" onclick="window.print()">
+                                    <i class="fas fa-print me-1"></i>
+                                    طباعة
+                                </button>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    {% if transactions %}
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th class="text-center" style="width: 60px;">#</th>
+                                        <th style="min-width: 200px;">السائق</th>
+                                        <th class="text-center">نوع المعاملة</th>
+                                        <th class="text-center">المبلغ</th>
+                                        <th class="text-center">طريقة الدفع</th>
+                                        <th class="text-center">الحالة</th>
+                                        <th class="text-center">التاريخ</th>
+                                        <th class="text-center">المرجع</th>
+                                        <th style="min-width: 200px;">الوصف</th>
+                                        <th class="text-center">الرحلة</th>
+                                        <th class="text-center">الإجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for transaction in transactions %}
+                                    <tr class="align-middle">
+                                        <td class="text-center">
+                                            <span class="badge bg-secondary fs-6">{{ forloop.counter }}</span>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar bg-primary text-white rounded-circle me-3 d-flex align-items-center justify-content-center" style="width: 45px; height: 45px;">
+                                                    <i class="fas fa-user"></i>
+                                                </div>
+                                                <div>
+                                                    <div class="fw-bold">{{ transaction.driver_account.driver.name }}</div>
+                                                    <small class="text-muted">{{ transaction.driver_account.driver.phone_number }}</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
+                                            {% if transaction.transaction_type in 'payment,bonus,fuel_allowance' %}
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                                    <i class="fas fa-arrow-up me-1"></i>
+                                                    {{ transaction.get_transaction_type_display }}
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-warning-subtle text-warning border border-warning-subtle">
+                                                    <i class="fas fa-arrow-down me-1"></i>
+                                                    {{ transaction.get_transaction_type_display }}
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-center">
+                                            {% if transaction.transaction_type in 'payment,bonus,fuel_allowance' %}
+                                                <span class="fw-bold text-success fs-5">
+                                                    <i class="fas fa-plus me-1"></i>
+                                                    {{ transaction.amount|floatformat:0 }}
+                                                </span>
+                                            {% else %}
+                                                <span class="fw-bold text-danger fs-5">
+                                                    <i class="fas fa-minus me-1"></i>
+                                                    {{ transaction.amount|floatformat:0 }}
+                                                </span>
+                                            {% endif %}
+                                            <small class="d-block text-muted">دينار عراقي</small>
+                                        </td>
+                                        <td class="text-center">
+                                            {% if transaction.payment_method == 'cash' %}
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                                    <i class="fas fa-money-bill me-1"></i>
+                                                    {{ transaction.get_payment_method_display }}
+                                                </span>
+                                            {% elif transaction.payment_method == 'bank_transfer' %}
+                                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                                                    <i class="fas fa-university me-1"></i>
+                                                    {{ transaction.get_payment_method_display }}
+                                                </span>
+                                            {% elif transaction.payment_method == 'check' %}
+                                                <span class="badge bg-warning-subtle text-warning border border-warning-subtle">
+                                                    <i class="fas fa-file-alt me-1"></i>
+                                                    {{ transaction.get_payment_method_display }}
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-info-subtle text-info border border-info-subtle">
+                                                    <i class="fas fa-mobile-alt me-1"></i>
+                                                    {{ transaction.get_payment_method_display }}
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-center">
+                                            {% if transaction.status == 'completed' %}
+                                                <span class="badge bg-success fs-6">
+                                                    <i class="fas fa-check-circle me-1"></i>
+                                                    {{ transaction.get_status_display }}
+                                                </span>
+                                            {% elif transaction.status == 'pending' %}
+                                                <span class="badge bg-warning fs-6">
+                                                    <i class="fas fa-clock me-1"></i>
+                                                    {{ transaction.get_status_display }}
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-danger fs-6">
+                                                    <i class="fas fa-times-circle me-1"></i>
+                                                    {{ transaction.get_status_display }}
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="fw-bold">{{ transaction.transaction_date|date:"Y-m-d" }}</div>
+                                            <small class="text-muted">{{ transaction.transaction_date|date:"H:i" }}</small>
+                                        </td>
+                                        <td class="text-center">
+                                            {% if transaction.reference_number %}
+                                                <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+                                                    {{ transaction.reference_number }}
+                                                </span>
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="text-truncate" style="max-width: 200px;" title="{{ transaction.description }}">
+                                                {{ transaction.description|truncatechars:50 }}
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
+                                            {% if transaction.trip %}
+                                                <a href="{% url 'port:trip_detail' transaction.trip.id %}" 
+                                                   class="badge bg-info-subtle text-info border border-info-subtle text-decoration-none">
+                                                    <i class="fas fa-route me-1"></i>
+                                                    رحلة #{{ transaction.trip.id }}
+                                                </a>
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="btn-group btn-group-sm">
+                                                <button type="button" class="btn btn-outline-primary btn-sm" 
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#transactionModal{{ transaction.id }}">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                                {% if transaction.status == 'pending' %}
+                                                    <button type="button" class="btn btn-outline-success btn-sm"
+                                                            onclick="updateTransactionStatus({{ transaction.id }}, 'completed')">
+                                                        <i class="fas fa-check"></i>
+                                                    </button>
+                                                    <button type="button" class="btn btn-outline-danger btn-sm"
+                                                            onclick="updateTransactionStatus({{ transaction.id }}, 'cancelled')">
+                                                        <i class="fas fa-times"></i>
+                                                    </button>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                    </tr>
+
+                                    <!-- Transaction Details Modal -->
+                                    <div class="modal fade" id="transactionModal{{ transaction.id }}" tabindex="-1">
+                                        <div class="modal-dialog modal-lg">
+                                            <div class="modal-content">
+                                                <div class="modal-header bg-primary text-white">
+                                                    <h5 class="modal-title">
+                                                        <i class="fas fa-info-circle me-2"></i>
+                                                        تفاصيل المعاملة المالية
+                                                    </h5>
+                                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <div class="row">
+                                                        <div class="col-md-6">
+                                                            <div class="mb-3">
+                                                                <label class="form-label fw-bold">السائق:</label>
+                                                                <p>{{ transaction.driver_account.driver.name }}</p>
+                                                            </div>
+                                                            <div class="mb-3">
+                                                                <label class="form-label fw-bold">نوع المعاملة:</label>
+                                                                <p>{{ transaction.get_transaction_type_display }}</p>
+                                                            </div>
+                                                            <div class="mb-3">
+                                                                <label class="form-label fw-bold">المبلغ:</label>
+                                                                <p class="fs-4 fw-bold {% if transaction.transaction_type in 'payment,bonus,fuel_allowance' %}text-success{% else %}text-danger{% endif %}">
+                                                                    {{ transaction.amount|floatformat:0 }} دينار عراقي
+                                                                </p>
+                                                            </div>
+                                                            <div class="mb-3">
+                                                                <label class="form-label fw-bold">طريقة الدفع:</label>
+                                                                <p>{{ transaction.get_payment_method_display }}</p>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <div class="mb-3">
+                                                                <label class="form-label fw-bold">الحالة:</label>
+                                                                <p>{{ transaction.get_status_display }}</p>
+                                                            </div>
+                                                            <div class="mb-3">
+                                                                <label class="form-label fw-bold">تاريخ المعاملة:</label>
+                                                                <p>{{ transaction.transaction_date|date:"Y-m-d H:i" }}</p>
+                                                            </div>
+                                                            <div class="mb-3">
+                                                                <label class="form-label fw-bold">رقم المرجع:</label>
+                                                                <p>{{ transaction.reference_number|default:"-" }}</p>
+                                                            </div>
+                                                            <div class="mb-3">
+                                                                <label class="form-label fw-bold">الرحلة المرتبطة:</label>
+                                                                <p>
+                                                                    {% if transaction.trip %}
+                                                                        <a href="{% url 'port:trip_detail' transaction.trip.id %}">رحلة #{{ transaction.trip.id }}</a>
+                                                                    {% else %}
+                                                                        -
+                                                                    {% endif %}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="row">
+                                                        <div class="col-12">
+                                                            <div class="mb-3">
+                                                                <label class="form-label fw-bold">الوصف:</label>
+                                                                <p>{{ transaction.description }}</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Pagination -->
+                        {% if transactions.has_other_pages %}
+                        <div class="card-footer bg-light border-0">
+                            <nav aria-label="تصفح الصفحات">
+                                <ul class="pagination justify-content-center mb-0">
+                                    {% if transactions.has_previous %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ transactions.previous_page_number }}">السابق</a>
+                                        </li>
+                                    {% endif %}
+                                    
+                                    {% for num in transactions.paginator.page_range %}
+                                        {% if transactions.number == num %}
+                                            <li class="page-item active">
+                                                <span class="page-link">{{ num }}</span>
+                                            </li>
+                                        {% else %}
+                                            <li class="page-item">
+                                                <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                                            </li>
+                                        {% endif %}
+                                    {% endfor %}
+                                    
+                                    {% if transactions.has_next %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ transactions.next_page_number }}">التالي</a>
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                        </div>
+                        {% endif %}
+                    {% else %}
+                        <!-- No Transactions Message -->
+                        <div class="text-center py-5">
+                            <div class="mb-4">
+                                <i class="fas fa-users fa-4x text-muted"></i>
+                            </div>
+                            <h4 class="text-muted mb-3">لا توجد معاملات مالية مع السائقين</h4>
+                            <p class="text-muted mb-4">لم يتم العثور على أي معاملات مالية مع السائقين. ابدأ بإضافة معاملة جديدة أو جرب تغيير معايير البحث.</p>
+                            <div class="btn-group">
+                                <a href="{% url 'port:add_driver_transaction' %}" class="btn btn-primary">
+                                    <i class="fas fa-plus me-2"></i>
+                                    إضافة معاملة مالية جديدة
+                                </a>
+                                <a href="{% url 'port:drivers_list' %}" class="btn btn-outline-primary">
+                                    <i class="fas fa-users me-2"></i>
+                                    إدارة السائقين
+                                </a>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+@media print {
+    .btn, .card-header, form, .modal {
+        display: none !important;
+    }
+    .card {
+        border: none !important;
+        box-shadow: none !important;
+    }
+    .stat-card {
+        break-inside: avoid;
+    }
+}
+
+.stat-card {
+    transition: transform 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+}
+
+.avatar {
+    flex-shrink: 0;
+}
+
+.table-responsive {
+    border-radius: 0.5rem;
+}
+
+.badge {
+    font-size: 0.75rem;
+}
+
+.text-truncate {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+</style>
+
+<script>
+function exportToExcel() {
+    alert('سيتم إضافة وظيفة تصدير Excel قريباً');
+}
+
+function updateTransactionStatus(transactionId, newStatus) {
+    if (confirm('هل أنت متأكد من تغيير حالة هذه المعاملة؟')) {
+        // يمكن إضافة AJAX request هنا لتحديث حالة المعاملة
+        alert('سيتم إضافة وظيفة تحديث الحالة قريباً');
+    }
+}
+
+// تأثير العد التصاعدي للأرقام
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.stat-card-value').forEach(element => {
+        const finalValue = parseInt(element.textContent.replace(/,/g, '')) || 0;
+        if (finalValue === 0) return;
+        
+        let currentValue = 0;
+        const duration = 1500;
+        const increment = finalValue / (duration / 16);
+        
+        const timer = setInterval(() => {
+            currentValue += increment;
+            
+            if (currentValue >= finalValue) {
+                clearInterval(timer);
+                element.textContent = finalValue.toLocaleString();
+            } else {
+                element.textContent = Math.floor(currentValue).toLocaleString();
+            }
+        }, 16);
+    });
+});
+</script>
+{% endblock %} 

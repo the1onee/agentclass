@@ -510,7 +510,13 @@
         // حدث اختيار إذن التسليم
         $('#delivery_order_select').change(function() {
             const permitId = $(this).val();
+            console.log('🔍 تم اختيار إذن التسليم:', permitId);
+            console.log('🔍 نوع البيانات:', typeof permitId);
+            console.log('🔍 العنصر المحدد:', this);
+            console.log('🔍 جميع خيارات الإذن:', $('#delivery_order_select option').map(function() { return { value: this.value, text: this.text }; }).get());
+            
             if (permitId) {
+                console.log('✅ المعرف صالح، بدء طلب AJAX...');
                 // إظهار شريط التحميل
                 $('.loading-bar').show();
                 
@@ -518,13 +524,14 @@
                 updateProgress(3);
                 
                 // طلب بيانات الإذن والحاويات المرتبطة
-                $.ajax({
-                    url: `/port/get_permit_containers/${permitId}/`,
-                    type: 'GET',
-                    dataType: 'json',
-                    headers: {
-                        'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').val()
-                    },
+                                                                $.ajax({
+                            url: `/get_permit_containers/${permitId}/`,
+                            type: 'GET',
+                            dataType: 'json',
+                            headers: {
+                                'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val(),
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
                     beforeSend: function() {
                         // إظهار مؤشر التحميل
                         $('.loading-overlay').css('display', 'flex');
@@ -606,9 +613,42 @@
                         $('.loading-bar').hide();
                         $('.loading-overlay').hide();
                         
+                        // طباعة معلومات مفصلة عن الخطأ
+                        console.log('===== تفاصيل الخطأ =====');
+                        console.log('Status:', status);
+                        console.log('Error:', error);
+                        console.log('Response Status:', xhr.status);
+                        console.log('Response Text:', xhr.responseText);
+                        console.log('Request URL:', `/get_permit_containers/${permitId}/`);
+                        console.log('CSRF Token:', $('input[name="csrfmiddlewaretoken"]').val());
+                        console.log('=========================');
+                        
                         // تحليل الخطأ
                         let errorMessage = 'حدث خطأ أثناء جلب بيانات الإذن والحاويات';
                         let details = '';
+                        let statusCode = xhr.status || 'غير معروف';
+                        
+                        // إضافة معلومات رمز الحالة
+                        let statusText = '';
+                        switch(xhr.status) {
+                            case 404:
+                                statusText = 'المورد غير موجود';
+                                errorMessage = 'الإذن المطلوب غير موجود';
+                                break;
+                            case 500:
+                                statusText = 'خطأ داخلي في الخادم';
+                                break;
+                            case 403:
+                                statusText = 'ممنوع الوصول';
+                                errorMessage = 'ليس لديك صلاحية للوصول لهذا الإذن';
+                                break;
+                            case 0:
+                                statusText = 'عدم الاتصال بالخادم';
+                                errorMessage = 'تعذر الاتصال بالخادم';
+                                break;
+                            default:
+                                statusText = xhr.statusText || 'خطأ غير معروف';
+                        }
                         
                         try {
                             const response = JSON.parse(xhr.responseText);
@@ -618,8 +658,15 @@
                             if (response.details) {
                                 details = '\nالتفاصيل: ' + response.details;
                             }
+                            if (response.debug_info) {
+                                details += '\nمعلومات التصحيح: ' + response.debug_info;
+                            }
                         } catch (e) {
                             console.error('خطأ في تحليل استجابة الخادم:', e);
+                            details = `\nرمز الحالة: ${statusCode} - ${statusText}`;
+                            if (xhr.responseText && xhr.responseText.length < 500) {
+                                details += '\nاستجابة الخادم: ' + xhr.responseText;
+                            }
                         }
                         
                         // عرض رسالة الخطأ
@@ -627,17 +674,26 @@
                             Swal.fire({
                                 icon: 'error',
                                 title: 'خطأ في جلب البيانات',
-                                text: errorMessage + details,
-                                confirmButtonText: 'حسناً'
+                                html: `<div style="text-align: right;">
+                                    <p><strong>الخطأ:</strong> ${errorMessage}</p>
+                                    <p><strong>رمز الحالة:</strong> ${statusCode}</p>
+                                    <p><strong>الوصف:</strong> ${statusText}</p>
+                                    ${details ? `<p><strong>التفاصيل:</strong> ${details.replace(/\n/g, '<br>')}</p>` : ''}
+                                </div>`,
+                                confirmButtonText: 'حسناً',
+                                width: '600px'
                             });
                         } else {
-                            alert(errorMessage + details);
+                            alert(`${errorMessage}\nرمز الحالة: ${statusCode}\n${statusText}${details}`);
                         }
                         
                         console.error('خطأ في جلب البيانات:', {
                             status: status,
                             error: error,
-                            response: xhr.responseText
+                            statusCode: xhr.status,
+                            statusText: xhr.statusText,
+                            response: xhr.responseText,
+                            url: `/get_permit_containers/${permitId}/`
                         });
                     },
                     complete: function() {
@@ -773,7 +829,7 @@
                     
                     if (response.success) {
                         // الانتقال إلى صفحة قائمة الرحلات مباشرة
-                        window.location.href = '/port/trips/';
+                        window.location.href = '/trips/';
                     } else {
                         // عرض رسالة خطأ مفصلة
                         let errorMessage = response.error || 'حدث خطأ أثناء حفظ الرحلة';

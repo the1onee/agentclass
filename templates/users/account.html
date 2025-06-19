@@ -1,50 +1,231 @@
-<!DOCTYPE html>
-<html lang="ar">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>حساب المستخدم</title>
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
-</head>
-<body>
-    <header>
-        <h1>معلومات الحساب</h1>
-    </header>
-    <main>
-        <section>
-            <h2>تغيير كلمة المرور</h2>
-            <form method="post" action="{% url 'change_password' %}">
-                {% csrf_token %}
-                <label for="old_password">كلمة المرور القديمة:</label>
-                <input type="password" id="old_password" name="old_password" required>
-                
-                <label for="new_password">كلمة المرور الجديدة:</label>
-                <input type="password" id="new_password" name="new_password" required>
-                
-                <button type="submit">تغيير كلمة المرور</button>
-            </form>
-        </section>
-        <section>
-            <h2>معلومات الحساب</h2>
-            <p>اسم المستخدم: {{ user.username }}</p>
-            <p>البريد الإلكتروني: {{ user.email }}</p>
-        </section>
-        <section>
-            <h2>تسجيل الدخول</h2>
-            <form method="post" action="{% url 'login' %}">
-                {% csrf_token %}
-                <label for="username">اسم المستخدم:</label>
-                <input type="text" id="username" name="username" required>
-                
-                <label for="password">كلمة المرور:</label>
-                <input type="password" id="password" name="password" required>
-                
-                <button type="submit">تسجيل الدخول</button>
-            </form>
-        </section>
-    </main>
-    <footer>
-        <p>جميع الحقوق محفوظة &copy; 2023</p>
-    </footer>
-</body>
-</html> 
+{% extends 'base.html' %}
+
+{% block title %}إعدادات الحساب{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- معلومات الحساب -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-user-cog me-2"></i>
+                        إعدادات الحساب
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5 class="text-primary border-bottom pb-2 mb-3">
+                                <i class="fas fa-user me-2"></i>
+                                المعلومات الشخصية
+                            </h5>
+                            
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">اسم المستخدم</label>
+                                <div class="form-control-plaintext bg-light p-2 rounded">
+                                    <i class="fas fa-user me-2 text-muted"></i>
+                                    {{ user.username }}
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">الاسم الأول</label>
+                                <div class="form-control-plaintext bg-light p-2 rounded">
+                                    <i class="fas fa-id-card me-2 text-muted"></i>
+                                    {{ user.first_name|default:"غير محدد" }}
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">الاسم الأخير</label>
+                                <div class="form-control-plaintext bg-light p-2 rounded">
+                                    <i class="fas fa-id-card me-2 text-muted"></i>
+                                    {{ user.last_name|default:"غير محدد" }}
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">البريد الإلكتروني</label>
+                                <div class="form-control-plaintext bg-light p-2 rounded">
+                                    <i class="fas fa-envelope me-2 text-muted"></i>
+                                    {{ user.email|default:"غير محدد" }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <h5 class="text-primary border-bottom pb-2 mb-3">
+                                <i class="fas fa-info-circle me-2"></i>
+                                معلومات الحساب
+                            </h5>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">تاريخ الانضمام</label>
+                                <div class="form-control-plaintext bg-light p-2 rounded">
+                                    <i class="fas fa-calendar-plus me-2 text-muted"></i>
+                                    {{ user.date_joined|date:"Y-m-d H:i" }}
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">آخر تسجيل دخول</label>
+                                <div class="form-control-plaintext bg-light p-2 rounded">
+                                    <i class="fas fa-clock me-2 text-muted"></i>
+                                    {% if user.last_login %}
+                                        {{ user.last_login|date:"Y-m-d H:i" }}
+                                    {% else %}
+                                        لم يسجل دخول من قبل
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">حالة الحساب</label>
+                                <div class="form-control-plaintext bg-light p-2 rounded">
+                                    {% if user.is_active %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check-circle me-1"></i>
+                                            نشط
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-times-circle me-1"></i>
+                                            غير نشط
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">حالة الاشتراك</label>
+                                <div class="form-control-plaintext bg-light p-2 rounded">
+                                    {% if user.is_subscription_active %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-star me-1"></i>
+                                            اشتراك نشط
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-warning">
+                                            <i class="fas fa-exclamation-triangle me-1"></i>
+                                            اشتراك منتهي
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- إحصائيات الاستخدام -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>
+                        إحصائيات الاستخدام
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <div class="p-3">
+                                <i class="fas fa-file-alt fa-2x text-primary mb-2"></i>
+                                <h4 class="text-primary">{{ user.delivery_orders.count }}</h4>
+                                <p class="text-muted">أوامر التسليم</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-3">
+                                <i class="fas fa-box fa-2x text-success mb-2"></i>
+                                <h4 class="text-success">{{ user.containers.count }}</h4>
+                                <p class="text-muted">الحاويات</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-3">
+                                <i class="fas fa-truck fa-2x text-warning mb-2"></i>
+                                <h4 class="text-warning">{{ user.trucks.count }}</h4>
+                                <p class="text-muted">الشاحنات</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="p-3">
+                                <i class="fas fa-user-tie fa-2x text-info mb-2"></i>
+                                <h4 class="text-info">{{ user.drivers.count }}</h4>
+                                <p class="text-muted">السائقين</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- إجراءات الحساب -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-cogs me-2"></i>
+                        إجراءات الحساب
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <a href="#" class="btn btn-outline-primary w-100 mb-3" onclick="alert('هذه الميزة قيد التطوير')">
+                                <i class="fas fa-edit me-2"></i>
+                                تحديث المعلومات الشخصية
+                            </a>
+                        </div>
+                        <div class="col-md-6">
+                            <a href="#" class="btn btn-outline-warning w-100 mb-3" onclick="alert('هذه الميزة قيد التطوير')">
+                                <i class="fas fa-key me-2"></i>
+                                تغيير كلمة المرور
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center mt-3">
+                        <a href="{% url 'port:home' %}" class="btn btn-primary">
+                            <i class="fas fa-home me-2"></i>
+                            العودة للرئيسية
+                        </a>
+                        <a href="/users/logout/" class="btn btn-danger ms-2">
+                            <i class="fas fa-sign-out-alt me-2"></i>
+                            تسجيل الخروج
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    border: none;
+    border-radius: 12px;
+}
+
+.card-header {
+    border-radius: 12px 12px 0 0 !important;
+}
+
+.form-control-plaintext {
+    border: 1px solid #e3e6f0;
+}
+
+.border-bottom {
+    border-bottom: 2px solid #dee2e6 !important;
+}
+
+.fw-semibold {
+    font-weight: 600 !important;
+}
+
+.btn {
+    border-radius: 8px;
+    font-weight: 500;
+}
+</style>
+{% endblock %} 

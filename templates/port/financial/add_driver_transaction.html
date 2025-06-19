@@ -1,0 +1,286 @@
+{% extends 'port/base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block port_content %}
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-gradient-success text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h3 class="mb-0">
+                            <i class="fas fa-plus me-2"></i>
+                            {{ title }}
+                        </h3>
+                        <a href="{% url 'port:driver_transactions_list' %}" class="btn btn-light btn-sm">
+                            <i class="fas fa-arrow-left me-2"></i>
+                            العودة للقائمة
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Form Section -->
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-light border-0">
+                    <h5 class="mb-0">
+                        <i class="fas fa-edit me-2 text-primary"></i>
+                        بيانات المعاملة المالية
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <!-- معلومات السائق -->
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.driver_account.id_for_label }}" class="form-label fw-semibold">
+                                        <i class="fas fa-user me-1 text-primary"></i>
+                                        {{ form.driver_account.label }}
+                                    </label>
+                                    {{ form.driver_account }}
+                                    {% if form.driver_account.errors %}
+                                        <div class="text-danger small">{{ form.driver_account.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- نوع المعاملة -->
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.transaction_type.id_for_label }}" class="form-label fw-semibold">
+                                        <i class="fas fa-tags me-1 text-primary"></i>
+                                        {{ form.transaction_type.label }}
+                                    </label>
+                                    {{ form.transaction_type }}
+                                    {% if form.transaction_type.errors %}
+                                        <div class="text-danger small">{{ form.transaction_type.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <!-- المبلغ -->
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.amount.id_for_label }}" class="form-label fw-semibold">
+                                        <i class="fas fa-money-bill-wave me-1 text-success"></i>
+                                        {{ form.amount.label }}
+                                    </label>
+                                    <div class="input-group">
+                                        {{ form.amount }}
+                                        <span class="input-group-text">دينار</span>
+                                    </div>
+                                    {% if form.amount.errors %}
+                                        <div class="text-danger small">{{ form.amount.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- طريقة الدفع -->
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.payment_method.id_for_label }}" class="form-label fw-semibold">
+                                        <i class="fas fa-credit-card me-1 text-primary"></i>
+                                        {{ form.payment_method.label }}
+                                    </label>
+                                    {{ form.payment_method }}
+                                    {% if form.payment_method.errors %}
+                                        <div class="text-danger small">{{ form.payment_method.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <!-- الحالة -->
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.status.id_for_label }}" class="form-label fw-semibold">
+                                        <i class="fas fa-toggle-on me-1 text-primary"></i>
+                                        {{ form.status.label }}
+                                    </label>
+                                    {{ form.status }}
+                                    {% if form.status.errors %}
+                                        <div class="text-danger small">{{ form.status.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- رقم المرجع -->
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.reference_number.id_for_label }}" class="form-label fw-semibold">
+                                        <i class="fas fa-hashtag me-1 text-secondary"></i>
+                                        {{ form.reference_number.label }}
+                                        <span class="text-muted small">(اختياري)</span>
+                                    </label>
+                                    {{ form.reference_number }}
+                                    {% if form.reference_number.errors %}
+                                        <div class="text-danger small">{{ form.reference_number.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <!-- تاريخ المعاملة -->
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.transaction_date.id_for_label }}" class="form-label fw-semibold">
+                                        <i class="fas fa-calendar me-1 text-primary"></i>
+                                        {{ form.transaction_date.label }}
+                                    </label>
+                                    {{ form.transaction_date }}
+                                    {% if form.transaction_date.errors %}
+                                        <div class="text-danger small">{{ form.transaction_date.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- الرحلة المرتبطة -->
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.trip.id_for_label }}" class="form-label fw-semibold">
+                                        <i class="fas fa-route me-1 text-info"></i>
+                                        {{ form.trip.label }}
+                                        <span class="text-muted small">(اختياري)</span>
+                                    </label>
+                                    {{ form.trip }}
+                                    {% if form.trip.errors %}
+                                        <div class="text-danger small">{{ form.trip.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- الوصف -->
+                        <div class="mb-4">
+                            <label for="{{ form.description.id_for_label }}" class="form-label fw-semibold">
+                                <i class="fas fa-align-left me-1 text-primary"></i>
+                                {{ form.description.label }}
+                            </label>
+                            {{ form.description }}
+                            {% if form.description.errors %}
+                                <div class="text-danger small">{{ form.description.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- معلومات مساعدة -->
+                        <div class="alert alert-info border-0">
+                            <h6 class="alert-heading">
+                                <i class="fas fa-info-circle me-2"></i>
+                                معلومات مهمة
+                            </h6>
+                            <ul class="mb-0">
+                                <li><strong>دفع للسائق/مكافأة/بدل وقود:</strong> سيتم إضافة المبلغ لرصيد السائق</li>
+                                <li><strong>خصم/غرامة/سلفة/صيانة:</strong> سيتم خصم المبلغ من رصيد السائق</li>
+                                <li><strong>المعاملات المعلقة:</strong> لن تؤثر على رصيد السائق حتى يتم تأكيدها</li>
+                            </ul>
+                        </div>
+
+                        <!-- أزرار الحفظ -->
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="d-flex justify-content-end gap-2">
+                                    <a href="{% url 'port:driver_transactions_list' %}" class="btn btn-secondary">
+                                        <i class="fas fa-times me-2"></i>
+                                        إلغاء
+                                    </a>
+                                    <button type="submit" class="btn btn-success">
+                                        <i class="fas fa-save me-2"></i>
+                                        حفظ المعاملة
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.form-control, .form-select {
+    border: 2px solid #e9ecef;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 0.2rem rgba(99, 102, 241, 0.25);
+}
+
+.form-label {
+    color: #374151;
+    margin-bottom: 0.5rem;
+}
+
+.card {
+    transition: transform 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+}
+
+.alert-info {
+    background: linear-gradient(45deg, #e0f2fe, #e1f5fe);
+    border-left: 4px solid #0288d1;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // إعداد التاريخ الحالي افتراضياً
+    const transactionDateField = document.querySelector('#id_transaction_date');
+    if (transactionDateField && !transactionDateField.value) {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        
+        transactionDateField.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+    }
+
+    // تغيير لون المبلغ حسب نوع المعاملة
+    const transactionTypeField = document.querySelector('#id_transaction_type');
+    const amountField = document.querySelector('#id_amount');
+    
+    function updateAmountColor() {
+        if (transactionTypeField && amountField) {
+            const transactionType = transactionTypeField.value;
+            const amountContainer = amountField.closest('.input-group');
+            
+            // إزالة الألوان السابقة
+            amountContainer.classList.remove('text-success', 'text-danger');
+            
+            // إضافة اللون المناسب
+            if (['payment', 'bonus', 'fuel_allowance'].includes(transactionType)) {
+                amountContainer.classList.add('text-success');
+            } else if (['deduction', 'fine', 'advance', 'maintenance'].includes(transactionType)) {
+                amountContainer.classList.add('text-danger');
+            }
+        }
+    }
+    
+    if (transactionTypeField) {
+        transactionTypeField.addEventListener('change', updateAmountColor);
+        updateAmountColor(); // تطبيق اللون عند التحميل
+    }
+});
+</script>
+{% endblock %} 

@@ -1,5 +1,5 @@
 from django import forms
-from .models import Driver, Truck, DeliveryOrder, Container, Trip
+from .models import Driver, Truck, DeliveryOrder, Container, Trip, Company, DriverTransaction, CompanyTransaction, DriverFinancialAccount
 from django.utils import timezone
 from datetime import timedelta
 from django.core.exceptions import ValidationError
@@ -204,15 +204,370 @@ class TripForm(forms.ModelForm):
 
     def clean_delivery_order(self):
         delivery_order = self.cleaned_data.get('delivery_order')
+        
+        # التحقق من عدم وجود رحلة نشطة أخرى لنفس الإذن
         if delivery_order:
-            # التحقق من عدم وجود رحلة نشطة تستخدم نفس إذن التسليم
-            existing_trip = Trip.objects.filter(
+            active_trips = Trip.objects.filter(
                 delivery_order=delivery_order,
                 status__in=['pending', 'active']
             )
-            if self.instance and self.instance.pk:
-                existing_trip = existing_trip.exclude(pk=self.instance.pk)
             
-            if existing_trip.exists():
-                raise forms.ValidationError('هذا الإذن مستخدم بالفعل في رحلة نشطة')
-        return delivery_order 
+            # إذا كان هذا تعديل، نستثني الرحلة الحالية من الفحص
+            if self.instance and self.instance.pk:
+                active_trips = active_trips.exclude(pk=self.instance.pk)
+            
+            if active_trips.exists():
+                raise forms.ValidationError(
+                    'يوجد رحلة نشطة بالفعل لهذا الإذن. لا يمكن إنشاء رحلة أخرى حتى تكتمل الرحلة الحالية.'
+                )
+        
+        return delivery_order
+
+
+# ===== نماذج إدارة الشركات =====
+class CompanyForm(forms.ModelForm):
+    class Meta:
+        model = Company
+        fields = [
+            'name', 'company_type', 'registration_number', 'tax_number',
+            'contact_person', 'phone_number', 'email', 'address', 'city',
+            'country', 'credit_limit', 'contract_start_date', 'contract_end_date',
+            'status'
+        ]
+        widgets = {
+            'name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'أدخل اسم الشركة',
+                'dir': 'rtl'
+            }),
+            'company_type': forms.Select(attrs={
+                'class': 'form-control',
+                'dir': 'rtl'
+            }),
+            'registration_number': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'رقم التسجيل',
+                'dir': 'ltr'
+            }),
+            'tax_number': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'الرقم الضريبي (اختياري)',
+                'dir': 'ltr'
+            }),
+            'contact_person': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'اسم الشخص المسؤول',
+                'dir': 'rtl'
+            }),
+            'phone_number': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'رقم الهاتف',
+                'dir': 'ltr'
+            }),
+            'email': forms.EmailInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'البريد الإلكتروني (اختياري)',
+                'dir': 'ltr'
+            }),
+            'address': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'العنوان الكامل',
+                'dir': 'rtl'
+            }),
+            'city': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'المدينة',
+                'dir': 'rtl'
+            }),
+            'country': forms.TextInput(attrs={
+                'class': 'form-control',
+                'dir': 'rtl'
+            }),
+            'credit_limit': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': '0.00',
+                'step': '0.01',
+                'min': '0'
+            }),
+            'contract_start_date': forms.DateInput(attrs={
+                'class': 'form-control',
+                'type': 'date'
+            }),
+            'contract_end_date': forms.DateInput(attrs={
+                'class': 'form-control',
+                'type': 'date'
+            }),
+            'status': forms.Select(attrs={
+                'class': 'form-control',
+                'dir': 'rtl'
+            }),
+        }
+
+    def clean_registration_number(self):
+        registration_number = self.cleaned_data.get('registration_number')
+        instance = getattr(self, 'instance', None)
+        
+        # التحقق من تكرار رقم التسجيل
+        if instance and instance.pk:
+            if Company.objects.filter(registration_number=registration_number).exclude(pk=instance.pk).exists():
+                raise forms.ValidationError('رقم التسجيل موجود مسبقاً. الرجاء إدخال رقم تسجيل آخر.')
+        else:
+            if Company.objects.filter(registration_number=registration_number).exists():
+                raise forms.ValidationError('رقم التسجيل موجود مسبقاً. الرجاء إدخال رقم تسجيل آخر.')
+        
+        return registration_number
+
+    def clean(self):
+        cleaned_data = super().clean()
+        start_date = cleaned_data.get('contract_start_date')
+        end_date = cleaned_data.get('contract_end_date')
+        
+        if start_date and end_date and end_date <= start_date:
+            raise forms.ValidationError('تاريخ انتهاء التعاقد يجب أن يكون بعد تاريخ البداية.')
+        
+        return cleaned_data
+
+
+# ===== نماذج المعاملات المالية =====
+class DriverTransactionForm(forms.ModelForm):
+    class Meta:
+        model = DriverTransaction
+        fields = [
+            'driver_account', 'transaction_type', 'amount', 'description',
+            'payment_method', 'reference_number', 'transaction_date',
+            'due_date', 'trip', 'status'
+        ]
+        widgets = {
+            'driver_account': forms.Select(attrs={
+                'class': 'form-control',
+                'dir': 'rtl'
+            }),
+            'transaction_type': forms.Select(attrs={
+                'class': 'form-control',
+                'dir': 'rtl'
+            }),
+            'amount': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': '0.00',
+                'step': '0.01',
+                'min': '0'
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'وصف المعاملة',
+                'dir': 'rtl'
+            }),
+            'payment_method': forms.Select(attrs={
+                'class': 'form-control',
+                'dir': 'rtl'
+            }),
+            'reference_number': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'رقم المرجع (اختياري)',
+                'dir': 'ltr'
+            }),
+            'transaction_date': forms.DateTimeInput(attrs={
+                'class': 'form-control',
+                'type': 'datetime-local'
+            }),
+            'due_date': forms.DateTimeInput(attrs={
+                'class': 'form-control',
+                'type': 'datetime-local'
+            }),
+            'trip': forms.Select(attrs={
+                'class': 'form-control',
+                'dir': 'rtl'
+            }),
+            'status': forms.Select(attrs={
+                'class': 'form-control',
+                'dir': 'rtl'
+            }),
+        }
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if user:
+            # فلترة حسابات السائقين للمستخدم الحالي
+            self.fields['driver_account'].queryset = DriverFinancialAccount.objects.filter(user=user)
+            # فلترة الرحلات للمستخدم الحالي
+            self.fields['trip'].queryset = Trip.objects.filter(user=user)
+        
+        # جعل الحقول الاختيارية غير مطلوبة
+        self.fields['reference_number'].required = False
+        self.fields['due_date'].required = False
+        self.fields['trip'].required = False
+
+    def clean_amount(self):
+        amount = self.cleaned_data.get('amount')
+        if amount and amount <= 0:
+            raise forms.ValidationError('المبلغ يجب أن يكون أكبر من الصفر.')
+        return amount
+
+
+class CompanyTransactionForm(forms.ModelForm):
+    class Meta:
+        model = CompanyTransaction
+        fields = [
+            'company', 'transaction_type', 'amount', 'description',
+            'payment_method', 'reference_number', 'invoice_number',
+            'transaction_date', 'due_date', 'delivery_order', 'trip', 'status'
+        ]
+        widgets = {
+            'company': forms.Select(attrs={
+                'class': 'form-control',
+                'dir': 'rtl'
+            }),
+            'transaction_type': forms.Select(attrs={
+                'class': 'form-control',
+                'dir': 'rtl'
+            }),
+            'amount': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': '0.00',
+                'step': '0.01',
+                'min': '0'
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'وصف المعاملة',
+                'dir': 'rtl'
+            }),
+            'payment_method': forms.Select(attrs={
+                'class': 'form-control',
+                'dir': 'rtl'
+            }),
+            'reference_number': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'رقم المرجع (اختياري)',
+                'dir': 'ltr'
+            }),
+            'invoice_number': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'رقم الفاتورة (اختياري)',
+                'dir': 'ltr'
+            }),
+            'transaction_date': forms.DateTimeInput(attrs={
+                'class': 'form-control',
+                'type': 'datetime-local'
+            }),
+            'due_date': forms.DateTimeInput(attrs={
+                'class': 'form-control',
+                'type': 'datetime-local'
+            }),
+            'delivery_order': forms.Select(attrs={
+                'class': 'form-control',
+                'dir': 'rtl'
+            }),
+            'trip': forms.Select(attrs={
+                'class': 'form-control',
+                'dir': 'rtl'
+            }),
+            'status': forms.Select(attrs={
+                'class': 'form-control',
+                'dir': 'rtl'
+            }),
+        }
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if user:
+            # فلترة البيانات للمستخدم الحالي
+            self.fields['company'].queryset = Company.objects.filter(user=user)
+            self.fields['delivery_order'].queryset = DeliveryOrder.objects.filter(user=user)
+            self.fields['trip'].queryset = Trip.objects.filter(user=user)
+        
+        # جعل الحقول الاختيارية غير مطلوبة
+        self.fields['reference_number'].required = False
+        self.fields['invoice_number'].required = False
+        self.fields['due_date'].required = False
+        self.fields['delivery_order'].required = False
+        self.fields['trip'].required = False
+
+    def clean_amount(self):
+        amount = self.cleaned_data.get('amount')
+        if amount and amount <= 0:
+            raise forms.ValidationError('المبلغ يجب أن يكون أكبر من الصفر.')
+        return amount
+
+
+# نموذج البحث المتقدم للشركات
+class CompanySearchForm(forms.Form):
+    search = forms.CharField(
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'البحث بالاسم أو رقم التسجيل...',
+            'dir': 'rtl'
+        }),
+        label='البحث'
+    )
+    company_type = forms.ChoiceField(
+        choices=[('', 'جميع الأنواع')] + Company.COMPANY_TYPES,
+        required=False,
+        widget=forms.Select(attrs={
+            'class': 'form-control',
+            'dir': 'rtl'
+        }),
+        label='نوع الشركة'
+    )
+    status = forms.ChoiceField(
+        choices=[('', 'جميع الحالات')] + Company.STATUS_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={
+            'class': 'form-control',
+            'dir': 'rtl'
+        }),
+        label='الحالة'
+    )
+
+
+# نموذج البحث في المعاملات المالية
+class TransactionSearchForm(forms.Form):
+    search = forms.CharField(
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'البحث في الوصف أو رقم المرجع...',
+            'dir': 'rtl'
+        }),
+        label='البحث'
+    )
+    transaction_type = forms.CharField(
+        max_length=20,
+        required=False,
+        widget=forms.Select(attrs={
+            'class': 'form-control',
+            'dir': 'rtl'
+        }),
+        label='نوع المعاملة'
+    )
+    status = forms.ChoiceField(
+        choices=[('', 'جميع الحالات')] + DriverTransaction.STATUS_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={
+            'class': 'form-control',
+            'dir': 'rtl'
+        }),
+        label='الحالة'
+    )
+    date_from = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={
+            'class': 'form-control',
+            'type': 'date'
+        }),
+        label='من تاريخ'
+    )
+    date_to = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={
+            'class': 'form-control',
+            'type': 'date'
+        }),
+        label='إلى تاريخ'
+    ) 

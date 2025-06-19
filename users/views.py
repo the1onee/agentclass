@@ -41,4 +41,9 @@ def subscription_expired(request):
     return render(request, 'users/subscription_expired.html')
 
 def disclaimer(request):
-    return render(request, 'disclaimer.html', {'now': timezone.now()}) 
+    return render(request, 'disclaimer.html', {'now': timezone.now()})
+
+@login_required
+def account(request):
+    """صفحة إعدادات الحساب"""
+    return render(request, 'users/account.html') 

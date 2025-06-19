@@ -225,7 +225,7 @@
                 <h1 style="color:#1e88e5;font-weight:700;margin-bottom:0.5rem;">تسجيل الدخول</h1>
                 <p style="color:#6c757d;">أدخل بيانات حسابك للوصول إلى لوحة التحكم</p>
             </div>
-            <form method="post" action="{% url 'login' %}">
+            <form method="post" action="/users/login/">
                 {% csrf_token %}
                 {% if messages %}
                 <div class="alert alert-danger mb-3">

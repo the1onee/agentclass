@@ -1,15 +1,15 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .forms import DriverForm, TruckForm, DeliveryOrderForm, ContainerForm, TripForm
-from .models import Driver, Truck, DeliveryOrder, Container,  Trip
+from .forms import DriverForm, TruckForm, DeliveryOrderForm, ContainerForm, TripForm, CompanyForm, DriverTransactionForm, CompanyTransactionForm, CompanySearchForm, TransactionSearchForm
+from .models import Driver, Truck, DeliveryOrder, Container, Trip, Company, DriverTransaction, CompanyTransaction, DriverFinancialAccount, FinancialReport
 from django.http import JsonResponse, HttpResponseRedirect, HttpResponse
-from django.db.models import Q, Prefetch, Count
+from django.db.models import Q, Prefetch, Count, Sum
 from django.views.decorators.csrf import csrf_exempt
 from django.db import transaction
 import json
 from django.utils import timezone
-from datetime import timedelta
+from datetime import timedelta, datetime
 from django.db.utils import IntegrityError
 from django.core.paginator import Paginator
 from django.views.decorators.http import require_POST
@@ -65,6 +65,69 @@ def calculate_stats(user):
         pending=Count('id', filter=Q(status='pending'))
     )
     
+    # إحصائيات الشركات
+    companies_stats = Company.objects.filter(user=user).aggregate(
+        total=Count('id'),
+        active=Count('id', filter=Q(status='active')),
+        inactive=Count('id', filter=Q(status='inactive')),
+        suspended=Count('id', filter=Q(status='suspended'))
+    )
+    
+    # حساب النسبة المئوية للشركات النشطة
+    if companies_stats['total'] > 0:
+        companies_stats['percent'] = int((companies_stats['active'] / companies_stats['total']) * 100)
+    else:
+        companies_stats['percent'] = 0
+    
+    # الإحصائيات المالية
+    from decimal import Decimal
+    
+    # إحصائيات المعاملات مع الشركات
+    company_transactions = CompanyTransaction.objects.filter(
+        user=user,
+        status='completed'
+    ).aggregate(
+        total_income=Sum('amount', filter=Q(transaction_type__in=['income', 'commission', 'service_fee'])),
+        total_payments=Sum('amount', filter=Q(transaction_type__in=['payment', 'advance', 'refund'])),
+        transaction_count=Count('id')
+    )
+    
+    # إحصائيات المعاملات مع السائقين
+    driver_transactions = DriverTransaction.objects.filter(
+        user=user,
+        status='completed'
+    ).aggregate(
+        total_payments=Sum('amount', filter=Q(transaction_type__in=['payment', 'bonus', 'fuel_allowance'])),
+        total_deductions=Sum('amount', filter=Q(transaction_type__in=['deduction', 'fine', 'advance'])),
+        transaction_count=Count('id')
+    )
+    
+    # حساب صافي الأرباح
+    company_income = company_transactions['total_income'] or Decimal('0')
+    company_payments = company_transactions['total_payments'] or Decimal('0')
+    driver_payments = driver_transactions['total_payments'] or Decimal('0')
+    driver_deductions = driver_transactions['total_deductions'] or Decimal('0')
+    
+    net_profit = company_income - company_payments - driver_payments + driver_deductions
+    
+    # حساب النسبة المئوية للربحية
+    profit_percentage = 0
+    profit_width = 0
+    if company_income > 0:
+        profit_percentage = float((net_profit * 100) / company_income)
+        profit_width = min(max(profit_percentage, 0), 100)  # محدود بين 0 و 100
+    
+    financial_stats = {
+        'company_income': company_income,
+        'company_payments': company_payments,
+        'driver_payments': driver_payments,
+        'driver_deductions': driver_deductions,
+        'net_profit': net_profit,
+        'profit_percentage': profit_percentage,
+        'profit_width': profit_width,
+        'total_transactions': (company_transactions['transaction_count'] or 0) + (driver_transactions['transaction_count'] or 0)
+    }
+    
     # جلب الرحلات الأخيرة
     recent_trips = Trip.objects.filter(user=user).select_related(
         'delivery_order'
@@ -79,6 +142,8 @@ def calculate_stats(user):
         'containers_report': containers_stats,
         'trucks_report': trucks_stats,
         'trips_report': trips_stats,
+        'companies_report': companies_stats,
+        'financial_report': financial_stats,
         'drivers_count': Driver.objects.filter(user=user, is_active=True).count(),
         'orders_count': delivery_orders_stats['active'],
         'containers_count': containers_stats['total'],
@@ -89,7 +154,7 @@ def calculate_stats(user):
 def port_home(request):
     if not request.user.is_subscription_active:
         messages.warning(request, 'يرجى تجديد اشتراكك للوصول إلى هذه الخدمات')
-        return redirect('subscription_expired')
+        return redirect('users:subscription_expired')
     
     cache_key = f'dashboard_stats_{request.user.id}'
     stats = cache.get(cache_key)
@@ -109,6 +174,8 @@ def port_home(request):
         'containers_report': stats['containers_report'],
         'trucks_report': stats['trucks_report'],
         'trips_report': stats['trips_report'],
+        'companies_report': stats['companies_report'],
+        'financial_report': stats['financial_report'],
         'drivers_count': stats['drivers_count'],
         'orders_count': stats['orders_count'],
         'containers_count': stats['containers_count'],
@@ -121,7 +188,7 @@ def port_home(request):
 def add_item(request, item_type):
     if not request.user.is_subscription_active:
         messages.warning(request, 'يرجى تجديد اشتراكك للوصول إلى هذه الخدمات')
-        return redirect('subscription_expired')
+        return redirect('users:subscription_expired')
 
     forms = {
         'driver': DriverForm,
@@ -238,7 +305,7 @@ def add_item(request, item_type):
 def delivery_orders_list(request):
     if not request.user.is_subscription_active:
         messages.warning(request, 'يرجى تجديد اشتراكك للوصول إلى هذه الخدمات')
-        return redirect('subscription_expired')
+        return redirect('users:subscription_expired')
     
     # جلب الأذونات التي لم ترتبط برحلة
     orders = DeliveryOrder.objects.filter(
@@ -346,7 +413,7 @@ def delivery_orders(request):
 def containers_list(request):
     if not request.user.is_subscription_active:
         messages.warning(request, 'يرجى تجديد اشتراكك للوصول إلى هذه الخدمات')
-        return redirect('subscription_expired')
+        return redirect('users:subscription_expired')
     
     # معالجة معاملات البحث والفلترة
     search_query = request.GET.get('search', '')
@@ -430,7 +497,7 @@ def drivers_list(request):
 def trucks_list(request):
     if not request.user.is_subscription_active:
         messages.warning(request, 'يرجى تجديد اشتراكك للوصول إلى هذه الخدمات')
-        return redirect('subscription_expired')
+        return redirect('users:subscription_expired')
     
     # استخراج معلمات الفلترة من الطلب
     status_filter = request.GET.get('status', 'all')
@@ -471,7 +538,7 @@ def trucks_list(request):
 def delete_item(request, item_type, item_id):
     if not request.user.is_subscription_active:
         messages.error(request, 'الاشتراك مطلوب لاستخدام هذه الميزة')
-        return redirect('subscription_expired')
+        return redirect('users:subscription_expired')
     
     if request.method != 'POST':
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -522,7 +589,7 @@ def delete_item(request, item_type, item_id):
 def edit_item(request, item_type, item_id):
     if not request.user.is_subscription_active:
         messages.warning(request, 'يرجى تجديد اشتراكك للوصول إلى هذه الخدمات')
-        return redirect('subscription_expired')
+        return redirect('users:subscription_expired')
 
     forms = {
         'driver': DriverForm,
@@ -580,7 +647,7 @@ def edit_item(request, item_type, item_id):
 def data_entry(request):
     if not request.user.is_subscription_active:
         messages.warning(request, 'يرجى تجديد اشتراكك للوصول إلى هذه الخدمات')
-        return redirect('subscription_expired')
+        return redirect('users:subscription_expired')
     
     return render(request, 'port/data_entry.html')
 
@@ -646,44 +713,125 @@ def containers_api(request):
 @login_required
 def get_permit_containers(request, permit_id):
     try:
+        print(f"📋 طلب جلب بيانات الإذن: {permit_id}")
+        print(f"👤 المستخدم: {request.user} (ID: {request.user.id if request.user.is_authenticated else 'غير مسجل'})")
+        print(f"🔐 مسجل الدخول: {request.user.is_authenticated}")
+        
+        # التحقق من تسجيل الدخول
+        if not request.user.is_authenticated:
+            return JsonResponse({
+                'success': False,
+                'error': 'يجب تسجيل الدخول أولاً',
+                'details': 'المستخدم غير مسجل الدخول'
+            }, status=401)
+        
         # التحقق من وجود الإذن
-        delivery_order = get_object_or_404(DeliveryOrder, id=permit_id, user=request.user)
+        try:
+            delivery_order = DeliveryOrder.objects.get(id=permit_id, user=request.user)
+            print(f"✅ تم العثور على الإذن: {delivery_order.order_number}")
+        except DeliveryOrder.DoesNotExist:
+            print(f"❌ الإذن {permit_id} غير موجود للمستخدم {request.user.id}")
+            # طباعة جميع الأذونات المتاحة للمستخدم
+            available_orders = DeliveryOrder.objects.filter(user=request.user)
+            print(f"📋 الأذونات المتاحة للمستخدم {request.user.id}:")
+            for order in available_orders[:5]:  # أول 5 أذونات فقط
+                print(f"   - ID: {order.id}, Number: {order.order_number}")
+            
+            return JsonResponse({
+                'success': False,
+                'error': 'الإذن المطلوب غير موجود',
+                'details': f'لم يتم العثور على إذن بالمعرف {permit_id} للمستخدم الحالي'
+            }, status=404)
         
         # جلب الحاويات المرتبطة بالإذن
         containers = delivery_order.containers.all()
+        print(f"📦 عدد الحاويات المرتبطة: {containers.count()}")
+        
+        # إذا لم تكن هناك حاويات مرتبطة، جلب الحاويات غير المرتبطة بأي إذن
+        if not containers.exists():
+            print("⚠️ لا توجد حاويات مرتبطة، جلب الحاويات المتاحة...")
+            containers = Container.objects.filter(
+                user=request.user,
+                delivery_order__isnull=True
+            ).order_by('-created_at')[:20]  # جلب أحدث 20 حاوية
+            print(f"📦 عدد الحاويات المتاحة: {containers.count()}")
+            
+            # إذا لم تكن هناك حاويات متاحة على الإطلاق، إنشاء حاويات تلقائياً
+            if not containers.exists():
+                print("🔧 إنشاء حاويات تلقائياً...")
+                # إنشاء حاويات افتراضية للإذن
+                container_types = ['20DC', '40DC']
+                created_containers = []
+                for i, container_type in enumerate(container_types, 1):
+                    container_number = f"{delivery_order.order_number}-{i:02d}"
+                    container = Container.objects.create(
+                        user=request.user,
+                        container_number=container_number,
+                        container_type=container_type,
+                        delivery_order=delivery_order,
+                        status=delivery_order.status,
+                        weight=20 if container_type == '20DC' else 40
+                    )
+                    created_containers.append(container)
+                    print(f"✨ تم إنشاء الحاوية: {container.container_number}")
+                
+                # إعادة جلب الحاويات بعد الإنشاء
+                containers = delivery_order.containers.all()
+                print(f"📦 عدد الحاويات بعد الإنشاء: {containers.count()}")
         
         # تحضير البيانات للاستجابة
+        containers_data = []
+        for container in containers:
+            container_data = {
+                'id': container.id,
+                'number': container.container_number,
+                'type': container.container_type,
+                'type_display': container.get_container_type_display(),
+                'weight': float(container.weight) if container.weight else 0,
+                'status': container.status,
+                'status_display': container.get_status_display()
+            }
+            containers_data.append(container_data)
+            print(f"📋 حاوية: {container.container_number} - النوع: {container.container_type}")
+        
         data = {
             'success': True,
             'delivery_order': {
                 'id': delivery_order.id,
                 'number': delivery_order.order_number,
-                'date': delivery_order.created_at.strftime('%Y-%m-%d %H:%M')
+                'date': delivery_order.created_at.strftime('%Y-%m-%d %H:%M'),
+                'status': delivery_order.status
             },
-            'containers': [
-                {
-                    'id': container.id,
-                    'number': container.container_number,
-                    'type': container.container_type,
-                    'weight': container.weight
-                }
-                for container in containers
-            ]
+            'containers': containers_data
         }
+        
+        print(f"✅ إرسال استجابة ناجحة مع {len(containers_data)} حاوية")
         return JsonResponse(data)
     
+    except DeliveryOrder.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'إذن التسليم غير موجود',
+            'details': 'لم يتم العثور على إذن التسليم المحدد'
+        }, status=404)
     except Exception as e:
+        import traceback
+        error_traceback = traceback.format_exc()
+        print(f"خطأ في get_permit_containers: {str(e)}")
+        print(f"تفاصيل الخطأ: {error_traceback}")
+        
         return JsonResponse({
             'success': False,
             'error': str(e),
-            'details': 'حدث خطأ أثناء جلب بيانات الإذن والحاويات'
+            'details': 'حدث خطأ أثناء جلب بيانات الإذن والحاويات',
+            'debug_info': str(e) if settings.DEBUG else None
         }, status=500)
 
 class TripCreateView(CreateView):
     model = Trip
     form_class = TripForm
     template_name = 'port/trip_form.html'
-    success_url = '/port/trips/'
+    success_url = '/trips/'  # إصلاح المسار
     
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -696,10 +844,11 @@ class TripCreateView(CreateView):
         context['drivers'] = Driver.objects.filter(user=self.request.user, is_active=True)
         context['trucks'] = Truck.objects.filter(user=self.request.user, is_active=True)
         
-        # جلب الأذونات غير المرتبطة برحلة
+        # جلب الأذونات غير المرتبطة برحلة فقط (أو المرتبطة برحلات ملغية/مكتملة)
         context['delivery_orders'] = DeliveryOrder.objects.filter(
-            user=self.request.user,
-            trips__isnull=True  # استخدام الحقل الصحيح 'trips'
+            user=self.request.user
+        ).exclude(
+            trips__status__in=['pending', 'active']  # استبعاد الأذونات المرتبطة برحلات نشطة أو قيد الانتظار
         ).order_by('-issue_date')
         
         return context
@@ -829,7 +978,7 @@ class TripCreateView(CreateView):
 def edit_trip(request, trip_id):
     if not request.user.is_subscription_active:
         messages.warning(request, 'يرجى تجديد اشتراكك للوصول إلى هذه الخدمات')
-        return redirect('subscription_expired')
+        return redirect('users:subscription_expired')
     
     # جلب الرحلة مع البيانات المرتبطة
     trip = get_object_or_404(Trip, id=trip_id, user=request.user)
@@ -1263,21 +1412,18 @@ def add_driver(request):
 @require_POST
 def remove_container_from_trip(request, trip_id, container_id):
     try:
-        # إزالة نقطة التوقف بعد التصحيح
-        # import pdb; pdb.set_trace()
-        logger.info(f"Attempting to remove container {container_id} from trip {trip_id}")
+        logger.info(f"محاولة إزالة الحاوية {container_id} من الرحلة {trip_id}")
         
         # التحقق من وجود الرحلة والحاوية
         trip = get_object_or_404(Trip, id=trip_id, user=request.user)
         container = get_object_or_404(Container, id=container_id, user=request.user)
         
-        # طباعة معلومات للتصحيح
-        logger.info(f"Trip: {trip.id}, Container: {container.id}")
-        logger.info(f"Container in trip: {trip.containers.filter(id=container_id).exists()}")
+        logger.info(f"الرحلة: {trip.id}, الحاوية: {container.id}")
+        logger.info(f"الحاوية في الرحلة: {trip.containers.filter(id=container_id).exists()}")
         
         # التحقق من أن الحاوية مرتبطة بالرحلة
         if not trip.containers.filter(id=container_id).exists():
-            logger.warning(f"Container {container_id} is not associated with trip {trip_id}")
+            logger.warning(f"الحاوية {container_id} غير مرتبطة بالرحلة {trip_id}")
             return JsonResponse({
                 'success': False,
                 'error': 'الحاوية غير مرتبطة بهذه الرحلة'
@@ -1285,15 +1431,38 @@ def remove_container_from_trip(request, trip_id, container_id):
         
         # إزالة الحاوية من الرحلة
         trip.containers.remove(container)
-        logger.info(f"Successfully removed container {container_id} from trip {trip_id}")
         
-        return JsonResponse({'success': True})
-    except Exception as e:
-        logger.error(f"Error removing container {container_id} from trip {trip_id}: {str(e)}")
+        # تحديث عدد الحاويات المتبقية
+        remaining_containers = trip.containers.count()
+        logger.info(f"تم إزالة الحاوية {container_id} من الرحلة {trip_id} بنجاح. الحاويات المتبقية: {remaining_containers}")
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'تم إزالة الحاوية بنجاح',
+            'remaining_containers': remaining_containers
+        })
+        
+    except Trip.DoesNotExist:
+        logger.error(f"الرحلة {trip_id} غير موجودة")
         return JsonResponse({
             'success': False,
-            'error': str(e)
-        }, status=400)
+            'error': 'الرحلة غير موجودة'
+        }, status=404)
+        
+    except Container.DoesNotExist:
+        logger.error(f"الحاوية {container_id} غير موجودة")
+        return JsonResponse({
+            'success': False,
+            'error': 'الحاوية غير موجودة'
+        }, status=404)
+        
+    except Exception as e:
+        logger.error(f"خطأ في إزالة الحاوية {container_id} من الرحلة {trip_id}: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': 'حدث خطأ غير متوقع أثناء إزالة الحاوية',
+            'details': str(e)
+        }, status=500)
 
 @login_required
 def export_trips_csv(request):
@@ -1541,6 +1710,20 @@ def dashboard_stats_api(request):
                 'completed': raw_stats['trips_report']['completed'],
                 'pending': raw_stats['trips_report']['pending']
             },
+            'companies': {
+                'total': raw_stats['companies_report']['total'],
+                'active': raw_stats['companies_report']['active'],
+                'inactive': raw_stats['companies_report']['inactive'],
+                'suspended': raw_stats['companies_report']['suspended']
+            },
+            'financial': {
+                'company_income': float(raw_stats['financial_report']['company_income']),
+                'company_payments': float(raw_stats['financial_report']['company_payments']),
+                'driver_payments': float(raw_stats['financial_report']['driver_payments']),
+                'driver_deductions': float(raw_stats['financial_report']['driver_deductions']),
+                'net_profit': float(raw_stats['financial_report']['net_profit']),
+                'total_transactions': raw_stats['financial_report']['total_transactions']
+            },
             'drivers_count': raw_stats['drivers_count'],
             'last_update': timezone.now().isoformat()
         }
@@ -1709,27 +1892,556 @@ def container_bulk_delete(request):
 @login_required
 @require_POST
 def truck_bulk_status_change(request):
+    """تغيير حالة عدة شاحنات بشكل جماعي"""
+    if not request.user.is_subscription_active:
+        messages.warning(request, 'يرجى تجديد اشتراكك للوصول إلى هذه الخدمات')
+        return redirect('users:subscription_expired')
+    
+    truck_ids = request.POST.getlist('truck_ids')
+    new_status = request.POST.get('new_status')
+    
+    if not truck_ids:
+        messages.warning(request, 'لم يتم تحديد أي شاحنات')
+        return redirect('port:trucks_list')
+    
     try:
-        trucks_ids = request.POST.get('trucks', '').split(',')
-        new_status = request.POST.get('status')
-        
-        if not trucks_ids or not new_status:
-            messages.error(request, 'بيانات غير كافية لتغيير الحالة')
+        # التحقق من صحة القيمة الجديدة
+        if new_status not in ['True', 'False']:
+            messages.error(request, 'حالة غير صحيحة')
             return redirect('port:trucks_list')
         
-        # تحديث حالة الشاحنات المحددة
-        is_active = new_status == 'active'
+        is_active = new_status == 'True'
+        
+        # تحديث الشاحنات
         updated_count = Truck.objects.filter(
-            id__in=trucks_ids,
+            id__in=truck_ids,
             user=request.user
         ).update(is_active=is_active)
         
-        status_text = 'نشطة' if is_active else 'غير نشطة'
-        messages.success(request, f'تم تحديث حالة {updated_count} شاحنة إلى {status_text} بنجاح')
-        return redirect('port:trucks_list')
+        status_text = 'نشط' if is_active else 'غير نشط'
+        messages.success(request, f'تم تحديث حالة {updated_count} شاحنة إلى {status_text}')
+        
     except Exception as e:
-        messages.error(request, f'حدث خطأ أثناء تحديث الحالة: {str(e)}')
-        return redirect('port:trucks_list')
+        messages.error(request, f'حدث خطأ أثناء تحديث الشاحنات: {str(e)}')
+    
+    return redirect('port:trucks_list')
 
 
+# ===== Views إدارة الشركات =====
+
+@login_required
+def companies_list(request):
+    """قائمة الشركات مع البحث والفلترة"""
+    if not request.user.is_subscription_active:
+        messages.warning(request, 'يرجى تجديد اشتراكك للوصول إلى هذه الخدمات')
+        return redirect('users:subscription_expired')
+    
+    companies = Company.objects.filter(user=request.user)
+    search_form = CompanySearchForm(request.GET)
+    
+    # تطبيق البحث والفلترة
+    if search_form.is_valid():
+        search = search_form.cleaned_data.get('search')
+        company_type = search_form.cleaned_data.get('company_type')
+        status = search_form.cleaned_data.get('status')
+        
+        if search:
+            companies = companies.filter(
+                Q(name__icontains=search) |
+                Q(registration_number__icontains=search) |
+                Q(contact_person__icontains=search)
+            )
+        
+        if company_type:
+            companies = companies.filter(company_type=company_type)
+        
+        if status:
+            companies = companies.filter(status=status)
+    
+    # ترقيم الصفحات
+    paginator = Paginator(companies.order_by('-created_at'), 20)
+    page_number = request.GET.get('page')
+    companies_page = paginator.get_page(page_number)
+    
+    # إحصائيات
+    stats = {
+        'total': companies.count(),
+        'active': companies.filter(status='active').count(),
+        'inactive': companies.filter(status='inactive').count(),
+        'suspended': companies.filter(status='suspended').count(),
+    }
+    
+    context = {
+        'companies': companies_page,
+        'search_form': search_form,
+        'stats': stats,
+    }
+    
+    return render(request, 'port/companies/list.html', context)
+
+
+@login_required
+def company_detail(request, company_id):
+    """تفاصيل الشركة مع المعاملات المالية"""
+    if not request.user.is_subscription_active:
+        messages.warning(request, 'يرجى تجديد اشتراكك للوصول إلى هذه الخدمات')
+        return redirect('users:subscription_expired')
+    
+    company = get_object_or_404(Company, id=company_id, user=request.user)
+    
+    # المعاملات المالية الأخيرة
+    recent_transactions = CompanyTransaction.objects.filter(
+        company=company
+    ).order_by('-transaction_date')[:10]
+    
+    # إحصائيات مالية
+    total_transactions = CompanyTransaction.objects.filter(company=company)
+    financial_stats = {
+        'total_income': total_transactions.filter(
+            transaction_type__in=['income', 'commission', 'service_fee']
+        ).aggregate(total=Sum('amount'))['total'] or 0,
+        'total_payments': total_transactions.filter(
+            transaction_type__in=['payment', 'fine', 'advance']
+        ).aggregate(total=Sum('amount'))['total'] or 0,
+        'pending_transactions': total_transactions.filter(status='pending').count(),
+        'completed_transactions': total_transactions.filter(status='completed').count(),
+    }
+    
+    financial_stats['current_balance'] = financial_stats['total_income'] - financial_stats['total_payments']
+    
+    context = {
+        'company': company,
+        'recent_transactions': recent_transactions,
+        'financial_stats': financial_stats,
+    }
+    
+    return render(request, 'port/companies/detail.html', context)
+
+
+@login_required
+def add_company(request):
+    """إضافة شركة جديدة"""
+    if not request.user.is_subscription_active:
+        messages.warning(request, 'يرجى تجديد اشتراكك للوصول إلى هذه الخدمات')
+        return redirect('users:subscription_expired')
+    
+    if request.method == 'POST':
+        form = CompanyForm(request.POST)
+        if form.is_valid():
+            company = form.save(commit=False)
+            company.user = request.user
+            company.save()
+            messages.success(request, f'تمت إضافة شركة {company.name} بنجاح')
+            return redirect('port:companies_list')
+        else:
+            messages.error(request, 'يرجى تصحيح الأخطاء أدناه')
+    else:
+        form = CompanyForm()
+    
+    context = {
+        'form': form,
+        'title': 'إضافة شركة جديدة'
+    }
+    
+    return render(request, 'port/companies/create.html', context)
+
+
+@login_required
+def edit_company(request, company_id):
+    """تعديل بيانات الشركة"""
+    if not request.user.is_subscription_active:
+        messages.warning(request, 'يرجى تجديد اشتراكك للوصول إلى هذه الخدمات')
+        return redirect('users:subscription_expired')
+    
+    company = get_object_or_404(Company, id=company_id, user=request.user)
+    
+    if request.method == 'POST':
+        form = CompanyForm(request.POST, instance=company)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'تم تحديث بيانات شركة {company.name} بنجاح')
+            return redirect('port:company_detail', company_id=company.id)
+        else:
+            messages.error(request, 'يرجى تصحيح الأخطاء أدناه')
+    else:
+        form = CompanyForm(instance=company)
+    
+    context = {
+        'form': form,
+        'company': company,
+        'title': f'تعديل بيانات {company.name}'
+    }
+    
+    return render(request, 'port/companies/edit.html', context)
+
+
+@login_required
+@require_POST
+def delete_company(request, company_id):
+    """حذف الشركة"""
+    if not request.user.is_subscription_active:
+        messages.warning(request, 'يرجى تجديد اشتراكك للوصول إلى هذه الخدمات')
+        return redirect('users:subscription_expired')
+    
+    company = get_object_or_404(Company, id=company_id, user=request.user)
+    
+    # التحقق من وجود معاملات مرتبطة
+    if company.company_transactions.exists():
+        messages.warning(request, 'لا يمكن حذف الشركة لوجود معاملات مالية مرتبطة بها')
+        return redirect('port:company_detail', company_id=company.id)
+    
+    company_name = company.name
+    company.delete()
+    messages.success(request, f'تم حذف شركة {company_name} بنجاح')
+    
+    return redirect('port:companies_list')
+
+
+# ===== Views المعاملات المالية مع السائقين =====
+
+@login_required
+def driver_transactions_list(request):
+    """قائمة المعاملات المالية مع السائقين"""
+    if not request.user.is_subscription_active:
+        messages.warning(request, 'يرجى تجديد اشتراكك للوصول إلى هذه الخدمات')
+        return redirect('users:subscription_expired')
+    
+    transactions = DriverTransaction.objects.filter(user=request.user).select_related(
+        'driver_account__driver', 'trip'
+    )
+    
+    search_form = TransactionSearchForm(request.GET)
+    search_form.fields['transaction_type'].widget.choices = [('', 'جميع الأنواع')] + DriverTransaction.TRANSACTION_TYPES
+    
+    # تطبيق البحث والفلترة
+    if search_form.is_valid():
+        search = search_form.cleaned_data.get('search')
+        transaction_type = search_form.cleaned_data.get('transaction_type')
+        status = search_form.cleaned_data.get('status')
+        date_from = search_form.cleaned_data.get('date_from')
+        date_to = search_form.cleaned_data.get('date_to')
+        
+        if search:
+            transactions = transactions.filter(
+                Q(description__icontains=search) |
+                Q(reference_number__icontains=search) |
+                Q(driver_account__driver__name__icontains=search)
+            )
+        
+        if transaction_type:
+            transactions = transactions.filter(transaction_type=transaction_type)
+        
+        if status:
+            transactions = transactions.filter(status=status)
+        
+        if date_from:
+            transactions = transactions.filter(transaction_date__gte=date_from)
+        
+        if date_to:
+            transactions = transactions.filter(transaction_date__lte=date_to)
+    
+    # ترقيم الصفحات
+    paginator = Paginator(transactions.order_by('-transaction_date'), 20)
+    page_number = request.GET.get('page')
+    transactions_page = paginator.get_page(page_number)
+    
+    # إحصائيات
+    stats = {
+        'total': transactions.count(),
+        'pending': transactions.filter(status='pending').count(),
+        'completed': transactions.filter(status='completed').count(),
+        'cancelled': transactions.filter(status='cancelled').count(),
+        'total_amount': transactions.filter(status='completed').aggregate(
+            total=Sum('amount')
+        )['total'] or 0
+    }
+    
+    context = {
+        'transactions': transactions_page,
+        'search_form': search_form,
+        'stats': stats,
+    }
+    
+    return render(request, 'port/financial/driver_transactions.html', context)
+
+
+@login_required
+def add_driver_transaction(request):
+    """إضافة معاملة مالية مع السائق"""
+    if not request.user.is_subscription_active:
+        messages.warning(request, 'يرجى تجديد اشتراكك للوصول إلى هذه الخدمات')
+        return redirect('users:subscription_expired')
+    
+    if request.method == 'POST':
+        form = DriverTransactionForm(request.POST, user=request.user)
+        if form.is_valid():
+            transaction_obj = form.save(commit=False)
+            transaction_obj.user = request.user
+            transaction_obj.save()
+            messages.success(request, 'تمت إضافة المعاملة المالية بنجاح')
+            return redirect('port:driver_transactions_list')
+        else:
+            messages.error(request, 'يرجى تصحيح الأخطاء أدناه')
+    else:
+        form = DriverTransactionForm(user=request.user)
+    
+    context = {
+        'form': form,
+        'title': 'إضافة معاملة مالية مع السائق'
+    }
+    
+    return render(request, 'port/financial/add_driver_transaction.html', context)
+
+
+@login_required
+def driver_balances(request):
+    """أرصدة السائقين"""
+    if not request.user.is_subscription_active:
+        messages.warning(request, 'يرجى تجديد اشتراكك للوصول إلى هذه الخدمات')
+        return redirect('users:subscription_expired')
+    
+    # إنشاء حسابات مالية للسائقين الذين لا يملكون حسابات
+    drivers_without_accounts = Driver.objects.filter(
+        user=request.user,
+        is_active=True
+    ).exclude(
+        id__in=DriverFinancialAccount.objects.filter(user=request.user).values_list('driver_id', flat=True)
+    )
+    
+    for driver in drivers_without_accounts:
+        DriverFinancialAccount.objects.get_or_create(
+            user=request.user,
+            driver=driver
+        )
+    
+    # جلب الحسابات المالية
+    accounts = DriverFinancialAccount.objects.filter(
+        user=request.user
+    ).select_related('driver').order_by('driver__name')
+    
+    # تحديث الأرصدة
+    for account in accounts:
+        account.update_balance()
+    
+    # إحصائيات عامة
+    total_balance = accounts.aggregate(total=Sum('current_balance'))['total'] or 0
+    total_earned = accounts.aggregate(total=Sum('total_earned'))['total'] or 0
+    total_deducted = accounts.aggregate(total=Sum('total_deducted'))['total'] or 0
+    
+    context = {
+        'accounts': accounts,
+        'stats': {
+            'total_balance': total_balance,
+            'total_earned': total_earned,
+            'total_deducted': total_deducted,
+            'drivers_count': accounts.count(),
+        }
+    }
+    
+    return render(request, 'port/financial/driver_balances.html', context)
+
+
+# ===== Views المعاملات المالية مع الشركات =====
+
+@login_required
+def company_transactions_list(request):
+    """قائمة المعاملات المالية مع الشركات"""
+    if not request.user.is_subscription_active:
+        messages.warning(request, 'يرجى تجديد اشتراكك للوصول إلى هذه الخدمات')
+        return redirect('users:subscription_expired')
+    
+    transactions = CompanyTransaction.objects.filter(user=request.user).select_related(
+        'company', 'delivery_order', 'trip'
+    )
+    
+    search_form = TransactionSearchForm(request.GET)
+    search_form.fields['transaction_type'].widget.choices = [('', 'جميع الأنواع')] + CompanyTransaction.TRANSACTION_TYPES
+    
+    # تطبيق البحث والفلترة
+    if search_form.is_valid():
+        search = search_form.cleaned_data.get('search')
+        transaction_type = search_form.cleaned_data.get('transaction_type')
+        status = search_form.cleaned_data.get('status')
+        date_from = search_form.cleaned_data.get('date_from')
+        date_to = search_form.cleaned_data.get('date_to')
+        
+        if search:
+            transactions = transactions.filter(
+                Q(description__icontains=search) |
+                Q(reference_number__icontains=search) |
+                Q(invoice_number__icontains=search) |
+                Q(company__name__icontains=search)
+            )
+        
+        if transaction_type:
+            transactions = transactions.filter(transaction_type=transaction_type)
+        
+        if status:
+            transactions = transactions.filter(status=status)
+        
+        if date_from:
+            transactions = transactions.filter(transaction_date__gte=date_from)
+        
+        if date_to:
+            transactions = transactions.filter(transaction_date__lte=date_to)
+    
+    # ترقيم الصفحات
+    paginator = Paginator(transactions.order_by('-transaction_date'), 20)
+    page_number = request.GET.get('page')
+    transactions_page = paginator.get_page(page_number)
+    
+    # إحصائيات
+    stats = {
+        'total': transactions.count(),
+        'pending': transactions.filter(status='pending').count(),
+        'completed': transactions.filter(status='completed').count(),
+        'cancelled': transactions.filter(status='cancelled').count(),
+        'total_income': transactions.filter(
+            status='completed',
+            transaction_type__in=['income', 'commission', 'service_fee']
+        ).aggregate(total=Sum('amount'))['total'] or 0,
+        'total_payments': transactions.filter(
+            status='completed',
+            transaction_type__in=['payment', 'fine', 'advance']
+        ).aggregate(total=Sum('amount'))['total'] or 0,
+    }
+    
+    context = {
+        'transactions': transactions_page,
+        'search_form': search_form,
+        'stats': stats,
+    }
+    
+    return render(request, 'port/financial/company_transactions.html', context)
+
+
+@login_required
+def add_company_transaction(request):
+    """إضافة معاملة مالية مع الشركة"""
+    if not request.user.is_subscription_active:
+        messages.warning(request, 'يرجى تجديد اشتراكك للوصول إلى هذه الخدمات')
+        return redirect('users:subscription_expired')
+    
+    if request.method == 'POST':
+        form = CompanyTransactionForm(request.POST, user=request.user)
+        if form.is_valid():
+            transaction_obj = form.save(commit=False)
+            transaction_obj.user = request.user
+            transaction_obj.save()
+            messages.success(request, 'تمت إضافة المعاملة المالية بنجاح')
+            return redirect('port:company_transactions_list')
+        else:
+            messages.error(request, 'يرجى تصحيح الأخطاء أدناه')
+    else:
+        form = CompanyTransactionForm(user=request.user)
+    
+    context = {
+        'form': form,
+        'title': 'إضافة معاملة مالية مع الشركة'
+    }
+    
+    return render(request, 'port/financial/add_company_transaction.html', context)
+
+
+@login_required
+def financial_reports(request):
+    """التقارير المالية"""
+    if not request.user.is_subscription_active:
+        messages.warning(request, 'يرجى تجديد اشتراكك للوصول إلى هذه الخدمات')
+        return redirect('users:subscription_expired')
+    
+    try:
+        # تحديد التواريخ (آخر 30 يوم افتراضياً)
+        end_date = timezone.now().date()
+        start_date = end_date - timedelta(days=30)
+        
+        if request.GET.get('start_date'):
+            try:
+                start_date = datetime.strptime(request.GET.get('start_date'), '%Y-%m-%d').date()
+            except ValueError:
+                messages.error(request, 'تاريخ البداية غير صحيح')
+                
+        if request.GET.get('end_date'):
+            try:
+                end_date = datetime.strptime(request.GET.get('end_date'), '%Y-%m-%d').date()
+            except ValueError:
+                messages.error(request, 'تاريخ النهاية غير صحيح')
+        
+        # تقرير الشركات - التعامل مع عدم وجود بيانات
+        try:
+            company_transactions = CompanyTransaction.objects.filter(
+                user=request.user,
+                status='completed',
+                transaction_date__date__range=[start_date, end_date]
+            )
+            
+            companies_income = company_transactions.filter(
+                transaction_type__in=['income', 'commission', 'service_fee']
+            ).aggregate(total=Sum('amount'))['total'] or 0
+            
+            companies_payments = company_transactions.filter(
+                transaction_type__in=['payment', 'fine', 'advance']
+            ).aggregate(total=Sum('amount'))['total'] or 0
+        except Exception as e:
+            logger.error(f"خطأ في بيانات الشركات: {e}")
+            companies_income = 0
+            companies_payments = 0
+        
+        # تقرير السائقين - التعامل مع عدم وجود بيانات
+        try:
+            driver_transactions = DriverTransaction.objects.filter(
+                user=request.user,
+                status='completed',
+                transaction_date__date__range=[start_date, end_date]
+            )
+            
+            drivers_payments = driver_transactions.filter(
+                transaction_type__in=['payment', 'bonus', 'fuel_allowance']
+            ).aggregate(total=Sum('amount'))['total'] or 0
+            
+            drivers_deductions = driver_transactions.filter(
+                transaction_type__in=['deduction', 'fine', 'advance', 'maintenance']
+            ).aggregate(total=Sum('amount'))['total'] or 0
+        except Exception as e:
+            logger.error(f"خطأ في بيانات السائقين: {e}")
+            drivers_payments = 0
+            drivers_deductions = 0
+        
+        # الإحصائيات العامة
+        total_income = companies_income
+        total_expenses = companies_payments + drivers_payments
+        net_profit = total_income - total_expenses
+        
+        # أفضل الشركات - التعامل مع عدم وجود بيانات
+        try:
+            top_companies = Company.objects.filter(
+                user=request.user,
+                company_transactions__status='completed',
+                company_transactions__transaction_date__date__range=[start_date, end_date]
+            ).annotate(
+                total_amount=Sum('company_transactions__amount')
+            ).order_by('-total_amount')[:5]
+        except Exception as e:
+            logger.error(f"خطأ في بيانات أفضل الشركات: {e}")
+            top_companies = []
+        
+        context = {
+            'start_date': start_date,
+            'end_date': end_date,
+            'companies_income': companies_income,
+            'companies_payments': companies_payments,
+            'drivers_payments': drivers_payments,
+            'drivers_deductions': drivers_deductions,
+            'total_income': total_income,
+            'total_expenses': total_expenses,
+            'net_profit': net_profit,
+            'top_companies': top_companies,
+        }
+        
+        return render(request, 'port/financial/reports.html', context)
+        
+    except Exception as e:
+        logger.error(f"خطأ عام في التقارير المالية: {e}")
+        messages.error(request, f'حدث خطأ أثناء تحميل التقرير: {str(e)}')
+        return redirect('port:home')
 

@@ -1,0 +1,144 @@
+{% extends 'port/base.html' %}
+
+{% block title %}أرصدة السائقين{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3 class="card-title">
+                        <i class="fas fa-wallet me-2"></i>
+                        أرصدة السائقين
+                    </h3>
+                    <a href="{% url 'port:add_driver_transaction' %}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>
+                        إضافة معاملة جديدة
+                    </a>
+                </div>
+
+                <div class="card-body">
+                    <!-- إحصائيات عامة -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="card bg-primary text-white">
+                                <div class="card-body text-center">
+                                    <h5>{{ stats.total_balance|floatformat:0 }}</h5>
+                                    <p>إجمالي الأرصدة (دينار)</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-success text-white">
+                                <div class="card-body text-center">
+                                    <h5>{{ stats.total_earned|floatformat:0 }}</h5>
+                                    <p>إجمالي المكاسب (دينار)</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-danger text-white">
+                                <div class="card-body text-center">
+                                    <h5>{{ stats.total_deducted|floatformat:0 }}</h5>
+                                    <p>إجمالي المستقطعات (دينار)</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-info text-white">
+                                <div class="card-body text-center">
+                                    <h5>{{ stats.drivers_count }}</h5>
+                                    <p>عدد السائقين</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- جدول أرصدة السائقين -->
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>اسم السائق</th>
+                                    <th>رقم الهاتف</th>
+                                    <th>إجمالي المكاسب</th>
+                                    <th>إجمالي المستقطعات</th>
+                                    <th>الرصيد الحالي</th>
+                                    <th>آخر تحديث</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for account in accounts %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ account.driver.name }}</strong>
+                                    </td>
+                                    <td class="text-muted">{{ account.driver.phone_number }}</td>
+                                    <td>
+                                        <span class="text-success">
+                                            <i class="fas fa-arrow-up me-1"></i>
+                                            {{ account.total_earned|floatformat:0 }} دينار
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="text-danger">
+                                            <i class="fas fa-arrow-down me-1"></i>
+                                            {{ account.total_deducted|floatformat:0 }} دينار
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if account.current_balance >= 0 %}
+                                            <span class="badge bg-success fs-6">
+                                                {{ account.current_balance|floatformat:0 }} دينار
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-danger fs-6">
+                                                {{ account.current_balance|floatformat:0 }} دينار
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-muted">
+                                        {{ account.updated_at|date:"Y-m-d H:i" }}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="{% url 'port:add_driver_transaction' %}?driver={{ account.driver.id }}" 
+                                               class="btn btn-sm btn-primary" title="إضافة معاملة">
+                                                <i class="fas fa-plus"></i>
+                                            </a>
+                                            <a href="{% url 'port:driver_transactions_list' %}?driver={{ account.driver.id }}" 
+                                               class="btn btn-sm btn-info" title="عرض المعاملات">
+                                                <i class="fas fa-history"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted py-4">
+                                        <i class="fas fa-users fa-3x mb-3"></i>
+                                        <p>لا توجد حسابات مالية للسائقين</p>
+                                        <a href="{% url 'port:drivers_list' %}" class="btn btn-primary">
+                                            إدارة السائقين
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.badge.fs-6 {
+    font-size: 0.875rem !important;
+    padding: 0.5rem 0.75rem;
+}
+</style>
+{% endblock %} 

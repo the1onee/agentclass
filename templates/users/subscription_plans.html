@@ -1,0 +1,421 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}خطط الاشتراك{% endblock %}
+
+{% block extra_css %}
+<style>
+:root {
+    --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --success-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    --warning-gradient: linear-gradient(135deg, #fc4a1a 0%, #f7b733 100%);
+    --purple-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.pricing-header {
+    background: var(--primary-gradient);
+    color: white;
+    padding: 3rem 0;
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.plan-card {
+    border: 2px solid #e9ecef;
+    border-radius: 20px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    background: white;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+.plan-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+    border-color: #667eea;
+}
+
+.plan-card.popular {
+    border-color: #28a745;
+    transform: scale(1.05);
+}
+
+.popular-badge {
+    position: absolute;
+    top: -10px;
+    right: 20px;
+    background: var(--success-gradient);
+    color: white;
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+.plan-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.plan-name {
+    font-size: 1.8rem;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+    color: #2c3e50;
+}
+
+.plan-price {
+    font-size: 2.5rem;
+    font-weight: 900;
+    color: #667eea;
+    margin-bottom: 0.5rem;
+}
+
+.price-period {
+    color: #6c757d;
+    font-size: 1rem;
+}
+
+.plan-features {
+    list-style: none;
+    padding: 0;
+    margin-bottom: 2rem;
+}
+
+.plan-features li {
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #f8f9fa;
+    position: relative;
+    padding-right: 2rem;
+}
+
+.plan-features li:before {
+    content: '✓';
+    position: absolute;
+    right: 0;
+    color: #28a745;
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+.plan-features li.disabled {
+    color: #adb5bd;
+    text-decoration: line-through;
+}
+
+.plan-features li.disabled:before {
+    content: '✗';
+    color: #dc3545;
+}
+
+.btn-subscribe {
+    width: 100%;
+    padding: 1rem;
+    font-size: 1.1rem;
+    font-weight: bold;
+    border: none;
+    border-radius: 50px;
+    transition: all 0.3s ease;
+}
+
+.btn-trial {
+    background: var(--warning-gradient);
+    color: white;
+}
+
+.btn-basic {
+    background: var(--primary-gradient);
+    color: white;
+}
+
+.btn-premium {
+    background: var(--success-gradient);
+    color: white;
+}
+
+.btn-enterprise {
+    background: var(--purple-gradient);
+    color: white;
+}
+
+.current-plan {
+    background: #f8f9fa;
+    border: 2px solid #28a745;
+}
+
+.current-plan-badge {
+    background: #28a745;
+    color: white;
+    padding: 5px 15px;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    position: absolute;
+    top: 15px;
+    left: 15px;
+}
+
+.usage-stats {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 15px;
+    margin-bottom: 3rem;
+}
+
+.usage-item {
+    margin-bottom: 1rem;
+}
+
+.usage-bar {
+    background: rgba(255,255,255,0.3);
+    height: 10px;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.usage-fill {
+    height: 100%;
+    background: white;
+    border-radius: 5px;
+    transition: width 0.5s ease;
+}
+
+.billing-toggle {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+    margin: 0 15px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 34px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .slider {
+    background-color: #667eea;
+}
+
+input:checked + .slider:before {
+    transform: translateX(26px);
+}
+
+.discount-badge {
+    background: #ff6b6b;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    margin-right: 10px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="pricing-header">
+    <div class="container">
+        <h1 class="display-4 mb-3">اختر خطة الاشتراك المناسبة</h1>
+        <p class="lead">خطط مرنة تناسب جميع أحجام الأعمال</p>
+    </div>
+</div>
+
+<div class="container">
+    {% if current_subscription %}
+    <div class="usage-stats">
+        <h4 class="mb-4">
+            <i class="fas fa-chart-line me-2"></i>
+            إحصائيات الاستخدام الحالية
+        </h4>
+        <div class="row">
+            <div class="col-md-3">
+                <div class="usage-item">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>الحاويات</span>
+                        <span>{{ current_subscription.containers_used }}/{{ current_subscription.plan.max_containers }}</span>
+                    </div>
+                    <div class="usage-bar">
+                        <div class="usage-fill" style="width: {{ usage_stats.containers }}%"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="usage-item">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>الشاحنات</span>
+                        <span>{{ current_subscription.trucks_used }}/{{ current_subscription.plan.max_trucks }}</span>
+                    </div>
+                    <div class="usage-bar">
+                        <div class="usage-fill" style="width: {{ usage_stats.trucks }}%"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="usage-item">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>السائقين</span>
+                        <span>{{ current_subscription.drivers_used }}/{{ current_subscription.plan.max_drivers }}</span>
+                    </div>
+                    <div class="usage-bar">
+                        <div class="usage-fill" style="width: {{ usage_stats.drivers }}%"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="usage-item">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>الرحلات</span>
+                        <span>{{ current_subscription.trips_this_month }}/{{ current_subscription.plan.max_trips_per_month }}</span>
+                    </div>
+                    <div class="usage-bar">
+                        <div class="usage-fill" style="width: {{ usage_stats.trips }}%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="text-center mt-3">
+            <small>اشتراكك ينتهي في {{ current_subscription.days_remaining }} يوم</small>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="billing-toggle">
+        <span class="h5">شهري</span>
+        <label class="toggle-switch">
+            <input type="checkbox" id="billingToggle">
+            <span class="slider"></span>
+        </label>
+        <span class="h5">سنوي</span>
+        <span class="discount-badge">خصم 20%</span>
+    </div>
+
+    <div class="row">
+        {% for plan in plans %}
+        <div class="col-lg-3 col-md-6">
+            <div class="plan-card {% if plan.is_popular %}popular{% endif %} {% if current_subscription.plan == plan %}current-plan{% endif %}">
+                {% if plan.is_popular %}
+                <div class="popular-badge">الأشهر</div>
+                {% endif %}
+                
+                {% if current_subscription.plan == plan %}
+                <div class="current-plan-badge">خطتك الحالية</div>
+                {% endif %}
+                
+                <div class="plan-header">
+                    <h3 class="plan-name">{{ plan.name }}</h3>
+                    <div class="plan-price">
+                        <span class="monthly-price">{{ plan.price_monthly }}</span>
+                        <span class="yearly-price" style="display: none;">{{ plan.price_yearly }}</span>
+                        <small class="price-period">دينار/شهر</small>
+                    </div>
+                    {% if plan.get_yearly_discount_percentage > 0 %}
+                    <small class="text-success yearly-discount" style="display: none;">
+                        وفر {{ plan.get_yearly_discount_percentage }}% سنوياً
+                    </small>
+                    {% endif %}
+                </div>
+
+                <ul class="plan-features">
+                    <li>{{ plan.max_containers }} حاوية</li>
+                    <li>{{ plan.max_trucks }} شاحنة</li>
+                    <li>{{ plan.max_drivers }} سائق</li>
+                    <li>{{ plan.max_trips_per_month }} رحلة شهرياً</li>
+                    <li {% if not plan.has_financial_reports %}class="disabled"{% endif %}>
+                        التقارير المالية
+                    </li>
+                    <li {% if not plan.has_advanced_analytics %}class="disabled"{% endif %}>
+                        التحليلات المتقدمة
+                    </li>
+                    <li {% if not plan.has_export_features %}class="disabled"{% endif %}>
+                        تصدير البيانات
+                    </li>
+                    <li {% if not plan.has_priority_support %}class="disabled"{% endif %}>
+                        دعم فني متقدم
+                    </li>
+                </ul>
+
+                {% if current_subscription.plan == plan %}
+                <button class="btn btn-secondary btn-subscribe" disabled>
+                    <i class="fas fa-check me-2"></i>
+                    خطتك الحالية
+                </button>
+                {% else %}
+                <a href="{% url 'subscribe_plan' plan.id %}" 
+                   class="btn btn-subscribe btn-{{ plan.plan_type }}">
+                    {% if plan.plan_type == 'trial' %}
+                        <i class="fas fa-gift me-2"></i>
+                        ابدأ التجربة المجانية
+                    {% else %}
+                        <i class="fas fa-crown me-2"></i>
+                        اشترك الآن
+                    {% endif %}
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="text-center mt-5">
+        <h4 class="mb-4">لديك أسئلة حول الخطط؟</h4>
+        <a href="https://wa.me/9627861625427" target="_blank" class="btn btn-success btn-lg">
+            <i class="fab fa-whatsapp me-2"></i>
+            تواصل معنا عبر الواتساب
+        </a>
+    </div>
+</div>
+
+<script>
+document.getElementById('billingToggle').addEventListener('change', function() {
+    const isYearly = this.checked;
+    const monthlyPrices = document.querySelectorAll('.monthly-price');
+    const yearlyPrices = document.querySelectorAll('.yearly-price');
+    const yearlyDiscounts = document.querySelectorAll('.yearly-discount');
+    
+    monthlyPrices.forEach(price => {
+        price.style.display = isYearly ? 'none' : 'inline';
+    });
+    
+    yearlyPrices.forEach(price => {
+        price.style.display = isYearly ? 'inline' : 'none';
+    });
+    
+    yearlyDiscounts.forEach(discount => {
+        discount.style.display = isYearly ? 'block' : 'none';
+    });
+});
+</script>
+{% endblock %} 

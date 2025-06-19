@@ -1,0 +1,295 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-plus-circle me-2"></i>
+                        {{ title }}
+                    </h4>
+                </div>
+
+                <div class="card-body">
+                    <!-- عرض الأخطاء -->
+                    {% if form.errors %}
+                        <div class="alert alert-danger">
+                            <h5><i class="fas fa-exclamation-triangle me-2"></i>يرجى تصحيح الأخطاء التالية:</h5>
+                            <ul class="mb-0">
+                                {% for field, errors in form.errors.items %}
+                                    {% for error in errors %}
+                                        <li>{{ error }}</li>
+                                    {% endfor %}
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+
+                    <form method="post" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <!-- معلومات الشركة والمعاملة -->
+                            <div class="col-md-6">
+                                <h5 class="text-primary border-bottom pb-2 mb-3">
+                                    <i class="fas fa-building me-2"></i>
+                                    معلومات الشركة والمعاملة
+                                </h5>
+
+                                <div class="mb-3">
+                                    <label for="{{ form.company.id_for_label }}" class="form-label">
+                                        <i class="fas fa-building me-1"></i>
+                                        الشركة <span class="text-danger">*</span>
+                                    </label>
+                                    {{ form.company }}
+                                    {% if form.company.help_text %}
+                                        <div class="form-text">{{ form.company.help_text }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="{{ form.transaction_type.id_for_label }}" class="form-label">
+                                        <i class="fas fa-exchange-alt me-1"></i>
+                                        نوع المعاملة <span class="text-danger">*</span>
+                                    </label>
+                                    {{ form.transaction_type }}
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="{{ form.amount.id_for_label }}" class="form-label">
+                                        <i class="fas fa-money-bill-wave me-1"></i>
+                                        المبلغ (دينار) <span class="text-danger">*</span>
+                                    </label>
+                                    {{ form.amount }}
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="{{ form.payment_method.id_for_label }}" class="form-label">
+                                        <i class="fas fa-credit-card me-1"></i>
+                                        طريقة الدفع <span class="text-danger">*</span>
+                                    </label>
+                                    {{ form.payment_method }}
+                                </div>
+                            </div>
+
+                            <!-- التفاصيل والتواريخ -->
+                            <div class="col-md-6">
+                                <h5 class="text-primary border-bottom pb-2 mb-3">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    التفاصيل والتواريخ
+                                </h5>
+
+                                <div class="mb-3">
+                                    <label for="{{ form.description.id_for_label }}" class="form-label">
+                                        <i class="fas fa-file-alt me-1"></i>
+                                        وصف المعاملة <span class="text-danger">*</span>
+                                    </label>
+                                    {{ form.description }}
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="{{ form.transaction_date.id_for_label }}" class="form-label">
+                                        <i class="fas fa-calendar me-1"></i>
+                                        تاريخ المعاملة <span class="text-danger">*</span>
+                                    </label>
+                                    {{ form.transaction_date }}
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="{{ form.reference_number.id_for_label }}" class="form-label">
+                                        <i class="fas fa-hashtag me-1"></i>
+                                        رقم المرجع
+                                    </label>
+                                    {{ form.reference_number }}
+                                    <div class="form-text">اختياري - للربط مع المستندات الخارجية</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="{{ form.invoice_number.id_for_label }}" class="form-label">
+                                        <i class="fas fa-receipt me-1"></i>
+                                        رقم الفاتورة
+                                    </label>
+                                    {{ form.invoice_number }}
+                                    <div class="form-text">اختياري</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- الحقول الاختيارية -->
+                        <div class="row">
+                            <div class="col-12">
+                                <h5 class="text-primary border-bottom pb-2 mb-3">
+                                    <i class="fas fa-cog me-2"></i>
+                                    إعدادات إضافية (اختيارية)
+                                </h5>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="{{ form.due_date.id_for_label }}" class="form-label">
+                                        <i class="fas fa-calendar-check me-1"></i>
+                                        تاريخ الاستحقاق
+                                    </label>
+                                    {{ form.due_date }}
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="{{ form.delivery_order.id_for_label }}" class="form-label">
+                                        <i class="fas fa-file-import me-1"></i>
+                                        إذن التسليم المرتبط
+                                    </label>
+                                    {{ form.delivery_order }}
+                                </div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="{{ form.trip.id_for_label }}" class="form-label">
+                                        <i class="fas fa-truck me-1"></i>
+                                        الرحلة المرتبطة
+                                    </label>
+                                    {{ form.trip }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.status.id_for_label }}" class="form-label">
+                                        <i class="fas fa-flag me-1"></i>
+                                        حالة المعاملة <span class="text-danger">*</span>
+                                    </label>
+                                    {{ form.status }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- أزرار الإجراءات -->
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% url 'port:company_transactions_list' %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>
+                                العودة للقائمة
+                            </a>
+                            <div>
+                                <button type="reset" class="btn btn-outline-warning me-2">
+                                    <i class="fas fa-undo me-2"></i>
+                                    إعادة تعيين
+                                </button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-2"></i>
+                                    حفظ المعاملة
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- معلومات مساعدة -->
+            <div class="card mt-4">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        معلومات مساعدة
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-success">أنواع الدخل:</h6>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-arrow-up text-success me-2"></i>دخل من الشركة</li>
+                                <li><i class="fas fa-arrow-up text-success me-2"></i>عمولة</li>
+                                <li><i class="fas fa-arrow-up text-success me-2"></i>رسوم خدمة</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-warning">أنواع المدفوعات:</h6>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-arrow-down text-warning me-2"></i>دفع للشركة</li>
+                                <li><i class="fas fa-arrow-down text-warning me-2"></i>غرامة</li>
+                                <li><i class="fas fa-arrow-down text-warning me-2"></i>سلفة</li>
+                                <li><i class="fas fa-arrow-down text-warning me-2"></i>استرداد</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// تحسين التفاعل مع النموذج
+document.addEventListener('DOMContentLoaded', function() {
+    // تعيين التاريخ الحالي كافتراضي
+    const transactionDateField = document.getElementById('{{ form.transaction_date.id_for_label }}');
+    if (transactionDateField && !transactionDateField.value) {
+        const now = new Date();
+        const localDateTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+        transactionDateField.value = localDateTime.toISOString().slice(0, 16);
+    }
+
+    // تحديث لون العنصر حسب نوع المعاملة
+    const transactionTypeField = document.getElementById('{{ form.transaction_type.id_for_label }}');
+    const amountField = document.getElementById('{{ form.amount.id_for_label }}');
+    
+    function updateAmountStyle() {
+        const selectedType = transactionTypeField.value;
+        if (['income', 'commission', 'service_fee'].includes(selectedType)) {
+            amountField.className = amountField.className.replace('border-warning', 'border-success');
+            amountField.className += ' border-success';
+        } else if (['payment', 'fine', 'advance', 'refund'].includes(selectedType)) {
+            amountField.className = amountField.className.replace('border-success', 'border-warning');
+            amountField.className += ' border-warning';
+        }
+    }
+    
+    if (transactionTypeField) {
+        transactionTypeField.addEventListener('change', updateAmountStyle);
+        updateAmountStyle(); // تطبيق التصميم الأولي
+    }
+});
+</script>
+
+<style>
+.form-label {
+    font-weight: 600;
+    color: #495057;
+}
+
+.text-danger {
+    font-weight: bold;
+}
+
+.border-bottom {
+    border-bottom: 2px solid #dee2e6 !important;
+}
+
+.form-control:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+.card {
+    border: none;
+    border-radius: 10px;
+}
+
+.card-header {
+    border-radius: 10px 10px 0 0 !important;
+}
+
+.btn {
+    border-radius: 6px;
+    font-weight: 500;
+}
+</style>
+{% endblock %} 

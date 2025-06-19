@@ -98,4 +98,99 @@
             </div>
         </div>
     </div>
+</div>
+
+<!-- Company and Financial Statistics Row -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="stat-card bg-gradient-secondary" id="companies-card">
+            <div class="stat-card-body">
+                <div class="stat-card-icon">
+                    <i class="fas fa-building"></i>
+                </div>
+                <div class="stat-card-info">
+                    <h5 class="stat-card-title">الشركات</h5>
+                    <div class="stat-card-value" id="total-companies">{{ companies_report.total }}</div>
+                    <div class="stat-card-progress">
+                        <div class="progress">
+                            <div class="progress-bar bg-success" role="progressbar" style="width: {{ companies_report.percent }}%" aria-valuenow="{{ companies_report.active }}" aria-valuemin="0" aria-valuemax="{{ companies_report.total }}"></div>
+                        </div>
+                        <div class="stat-card-subtitle"><span id="active-companies">{{ companies_report.active }}</span> نشط من أصل {{ companies_report.total }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="stat-card-footer">
+                <a href="{% url 'port:companies_list' %}" class="stat-card-action">
+                    عرض التفاصيل <i class="fas fa-arrow-left"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="stat-card bg-gradient-success" id="income-card">
+            <div class="stat-card-body">
+                <div class="stat-card-icon">
+                    <i class="fas fa-money-bill-wave"></i>
+                </div>
+                <div class="stat-card-info">
+                    <h5 class="stat-card-title">إجمالي الدخل</h5>
+                    <div class="stat-card-value" id="total-income">{{ financial_report.company_income|floatformat:0 }}</div>
+                    <div class="stat-card-subtitle">دينار عراقي</div>
+                </div>
+            </div>
+            <div class="stat-card-footer">
+                <a href="{% url 'port:company_transactions_list' %}" class="stat-card-action">
+                    عرض التفاصيل <i class="fas fa-arrow-left"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="stat-card bg-gradient-danger" id="expenses-card">
+            <div class="stat-card-body">
+                <div class="stat-card-icon">
+                    <i class="fas fa-money-bill-alt"></i>
+                </div>
+                <div class="stat-card-info">
+                    <h5 class="stat-card-title">إجمالي المصروفات</h5>
+                    <div class="stat-card-value" id="total-expenses">{{ financial_report.company_payments|add:financial_report.driver_payments|floatformat:0 }}</div>
+                    <div class="stat-card-subtitle">دينار عراقي</div>
+                </div>
+            </div>
+            <div class="stat-card-footer">
+                <a href="{% url 'port:driver_transactions_list' %}" class="stat-card-action">
+                    عرض التفاصيل <i class="fas fa-arrow-left"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="stat-card {% if financial_report.net_profit >= 0 %}bg-gradient-primary{% else %}bg-gradient-danger{% endif %}" id="profit-card">
+            <div class="stat-card-body">
+                <div class="stat-card-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="stat-card-info">
+                    <h5 class="stat-card-title">صافي الربح</h5>
+                    <div class="stat-card-value" id="net-profit">{{ financial_report.net_profit|floatformat:0 }}</div>
+                    <div class="stat-card-subtitle">
+                        {% if financial_report.net_profit >= 0 %}
+                            <span class="text-success">ربح</span>
+                        {% else %}
+                            <span class="text-danger">خسارة</span>
+                        {% endif %}
+                        - دينار عراقي
+                    </div>
+                </div>
+            </div>
+            <div class="stat-card-footer">
+                <a href="{% url 'port:financial_reports' %}" class="stat-card-action">
+                    عرض التفاصيل <i class="fas fa-arrow-left"></i>
+                </a>
+            </div>
+        </div>
+    </div>
 </div> 

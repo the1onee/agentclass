@@ -1,7 +1,114 @@
-<nav>
-    <ul>
-        <li><a href="{% url 'home' %}">الرئيسية</a></li>
-        <li><a href="{% url 'account' %}">حسابي</a></li>
-        <!-- روابط أخرى -->
-    </ul>
-</nav> 
+<!-- شريط التنقل البسيط -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark-enhanced shadow-lg">
+    <div class="container-fluid">
+        <a class="navbar-brand fw-bold" href="{% url 'port:home' %}">
+            <i class="fas fa-ship me-2"></i>
+            نظام إدارة المندوب
+        </a>
+        
+        <div class="navbar-nav">
+            <a class="nav-link fw-semibold" href="{% url 'port:home' %}">
+                <i class="fas fa-home me-1"></i>الرئيسية
+            </a>
+            <a class="nav-link fw-semibold" href="{% url 'port:delivery_orders' %}">
+                <i class="fas fa-file-alt me-1"></i>أوامر التسليم
+            </a>
+            <a class="nav-link fw-semibold" href="{% url 'port:containers_list' %}">
+                <i class="fas fa-box me-1"></i>الحاويات
+            </a>
+            <a class="nav-link fw-semibold" href="{% url 'port:drivers_list' %}">
+                <i class="fas fa-user-tie me-1"></i>السائقين
+            </a>
+            <a class="nav-link fw-semibold" href="{% url 'port:trucks_list' %}">
+                <i class="fas fa-truck me-1"></i>الشاحنات
+            </a>
+            <a class="nav-link fw-semibold" href="{% url 'port:trip_list' %}">
+                <i class="fas fa-route me-1"></i>الرحلات
+            </a>
+            <a class="nav-link fw-semibold" href="{% url 'port:companies_list' %}">
+                <i class="fas fa-building me-1"></i>الشركات
+            </a>
+            
+            <!-- روابط المالية -->
+            <div class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle fw-semibold" href="#" role="button" data-bs-toggle="dropdown">
+                    <i class="fas fa-chart-line me-1"></i>المالية
+                </a>
+                <ul class="dropdown-menu dropdown-menu-dark">
+                    <li>
+                        <a class="dropdown-item" href="{% url 'port:company_transactions_list' %}">
+                            <i class="fas fa-exchange-alt me-2"></i>معاملات الشركات
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="{% url 'port:driver_transactions_list' %}">
+                            <i class="fas fa-user-check me-2"></i>معاملات السائقين
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="{% url 'port:driver_balances' %}">
+                            <i class="fas fa-wallet me-2"></i>أرصدة السائقين
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <a class="dropdown-item" href="{% url 'port:financial_reports' %}">
+                            <i class="fas fa-chart-bar me-2"></i>التقارير المالية
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            
+            <!-- روابط المستخدم -->
+            {% if user.is_authenticated %}
+            <a class="nav-link fw-semibold" href="/users/account/">
+                <i class="fas fa-user-circle me-1"></i>{{ user.first_name }}
+            </a>
+            <a class="nav-link fw-semibold text-danger" href="/users/logout/">
+                <i class="fas fa-sign-out-alt me-1"></i>خروج
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</nav>
+
+<style>
+/* تصميم مخصص لشريط التنقل البسيط */
+.bg-dark-enhanced {
+    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%) !important;
+    border-bottom: 3px solid #007bff;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.navbar-dark .navbar-brand {
+    color: #ffffff !important;
+    font-weight: 700;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.navbar-dark .nav-link {
+    color: #e9ecef !important;
+    font-weight: 600;
+    text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin: 2px;
+}
+
+.navbar-dark .nav-link:hover {
+    color: #007bff !important;
+    background-color: rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+}
+
+.dropdown-menu-dark .dropdown-item {
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.dropdown-menu-dark .dropdown-item:hover {
+    background-color: #007bff;
+    color: #ffffff !important;
+}
+</style> 
