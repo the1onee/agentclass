@@ -27,9 +27,8 @@ load_dotenv(BASE_DIR / 'dev.env')
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-temporary-key-for-development-only')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG =os.getenv('DJANGO_DEBUG', 'False') == 'True'
+DEBUG = False
 
-#os.getenv('DJANGO_DEBUG', 'False') == 'True'
 ALLOWED_HOSTS = ['*']
 
 
