@@ -325,11 +325,32 @@ class Trip(models.Model):
         return False
 
     def save(self, *args, **kwargs):
-        if not self.pk:  # رحلة جديدة
-            if not self.start_time:
-                self.start_time = timezone.now()
+        # التحقق من وجود المستخدم
+        if not self.user_id:
+            raise ValueError('يجب تحديد المستخدم للرحلة')
         
+        # التحقق من وجود إذن التسليم
+        if not self.delivery_order_id:
+            raise ValueError('يجب تحديد إذن التسليم للرحلة')
+        
+        # التحقق من أن إذن التسليم ينتمي لنفس المستخدم
+        if self.delivery_order and self.delivery_order.user_id != self.user_id:
+            raise ValueError('إذن التسليم لا ينتمي لنفس المستخدم')
+        
+        # تعيين قيم افتراضية
+        if not self.start_time:
+            self.start_time = timezone.now()
+        
+        # إذا كانت حالة الرحلة "مكتملة" ولا يوجد وقت انتهاء
+        if self.status == 'completed' and not self.end_time:
+            self.end_time = timezone.now()
+        
+        # حفظ الرحلة
         super().save(*args, **kwargs)
+        
+        # التحقق من إكمال الرحلة تلقائياً إذا تم تسليم جميع الحاويات
+        if self.status == 'active':
+            self.check_auto_complete()
 
     class Meta:
         verbose_name = 'رحلة'

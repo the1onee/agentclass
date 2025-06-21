@@ -27,7 +27,7 @@ load_dotenv(BASE_DIR / 'dev.env')
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-temporary-key-for-development-only')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DJANGO_DEBUG', 'False') == 'True'
+DEBUG = True
 
 #os.getenv('DJANGO_DEBUG', 'False') == 'True'
 ALLOWED_HOSTS = ['*']
@@ -55,8 +55,8 @@ INSTALLED_APPS = [
 
 AUTH_USER_MODEL = 'users.CustomUser'
 LOGIN_URL = 'users:login'
-LOGIN_REDIRECT_URL = 'users:home'
-LOGOUT_REDIRECT_URL = 'users:login'
+LOGIN_REDIRECT_URL = 'port:home'
+LOGOUT_REDIRECT_URL = 'port:home'
 
 MIDDLEWARE = [
     'whitenoise.middleware.WhiteNoiseMiddleware',

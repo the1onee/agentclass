@@ -831,7 +831,11 @@ class TripCreateView(CreateView):
     model = Trip
     form_class = TripForm
     template_name = 'port/trip_form.html'
-    success_url = '/trips/'  # إصلاح المسار
+    
+    def get_success_url(self):
+        """إرجاع URL الصحيح للانتقال بعد النجاح"""
+        from django.urls import reverse
+        return reverse('port:trip_list')
     
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -853,11 +857,33 @@ class TripCreateView(CreateView):
         
         return context
     
+    def post(self, request, *args, **kwargs):
+        """معالجة الطلبات POST بشكل مخصص"""
+        self.object = None
+        form = self.get_form()
+        
+        if form.is_valid():
+            return self.form_valid(form)
+        else:
+            # في حالة وجود أخطاء في النموذج
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                errors = {}
+                for field, error_list in form.errors.items():
+                    errors[field] = [str(error) for error in error_list]
+                
+                return JsonResponse({
+                    'success': False,
+                    'error': 'يوجد أخطاء في النموذج',
+                    'form_errors': errors
+                }, status=400)
+            
+            return self.form_invalid(form)
+    
     def form_valid(self, form):
         try:
             with transaction.atomic():
                 # طباعة البيانات المستلمة للتصحيح
-                print("البيانات المستلمة:", self.request.POST)
+                logger.info(f"البيانات المستلمة من المستخدم {self.request.user.id}: {self.request.POST}")
                 
                 # تعيين المستخدم للرحلة
                 form.instance.user = self.request.user
@@ -868,25 +894,31 @@ class TripCreateView(CreateView):
                     raise ValueError('لم يتم تحديد إذن التسليم')
                 
                 # الحصول على إذن التسليم
-                delivery_order = get_object_or_404(DeliveryOrder, id=delivery_order_id, user=self.request.user)
+                try:
+                    delivery_order = DeliveryOrder.objects.get(id=delivery_order_id, user=self.request.user)
+                except DeliveryOrder.DoesNotExist:
+                    raise ValueError(f'إذن التسليم غير موجود أو غير مصرح لك بالوصول إليه')
                 
                 # حفظ الرحلة
                 trip = form.save(commit=False)
                 trip.delivery_order = delivery_order  # تعيين إذن التسليم للرحلة
                 trip.save()
-                form.save_m2m()
                 
                 # معالجة بيانات الحاويات
                 containers_data = []
                 if 'containers' in self.request.POST:
                     try:
                         containers_data = json.loads(self.request.POST['containers'])
-                    except json.JSONDecodeError:
-                        print("خطأ في تحليل بيانات الحاويات:", self.request.POST['containers'])
+                        logger.info(f"بيانات الحاويات: {containers_data}")
+                    except json.JSONDecodeError as e:
+                        logger.error(f"خطأ في تحليل بيانات الحاويات: {e}")
                         raise ValueError('تنسيق بيانات الحاويات غير صالح')
                 
-                # طباعة بيانات الحاويات للتصحيح
-                print("بيانات الحاويات:", containers_data)
+                # إذا لم توجد بيانات حاويات، نأخذ جميع حاويات إذن التسليم
+                if not containers_data:
+                    containers = Container.objects.filter(delivery_order=delivery_order)
+                    containers_data = [{'id': container.id} for container in containers]
+                    logger.info(f"تم أخذ جميع حاويات إذن التسليم: {len(containers_data)} حاوية")
                 
                 # التحقق من وجود حاويات
                 if not containers_data:
@@ -903,35 +935,55 @@ class TripCreateView(CreateView):
                     try:
                         container = Container.objects.get(id=container_id, user=self.request.user)
                     except Container.DoesNotExist:
-                        print(f"الحاوية غير موجودة: {container_id}")
+                        logger.warning(f"الحاوية غير موجودة: {container_id}")
                         continue
                     
-                    # تعيين السائق والشاحنة تلقائياً إذا كانت القيمة "auto"
-                    if container_data.get('driver') == "auto":
-                        # تعيين أول سائق متاح
+                    # التحقق من نوع التعيين (يدوي أم تلقائي)
+                    manual_assignment = self.request.POST.get('manual_assignment', 'true').lower() == 'true'
+                    
+                    # تعيين السائق والشاحنة حسب النوع المختار
+                    driver_value = container_data.get('driver', 'auto')
+                    truck_value = container_data.get('truck', 'auto')
+                    
+                    if manual_assignment and driver_value and driver_value != "auto":
+                        # التعيين اليدوي للسائق
+                        try:
+                            driver = Driver.objects.get(id=driver_value, user=self.request.user)
+                            container.driver = driver
+                            logger.info(f"تم تعيين السائق {driver.name} يدوياً للحاوية {container.container_number}")
+                        except Driver.DoesNotExist:
+                            logger.warning(f"السائق غير موجود: {driver_value}")
+                            # في حالة عدم وجود السائق، نعين السائق الأول المتاح
+                            driver = Driver.objects.filter(user=self.request.user, is_active=True).first()
+                            if driver:
+                                container.driver = driver
+                                logger.info(f"تم تعيين السائق الأول المتاح {driver.name} للحاوية {container.container_number}")
+                    else:
+                        # التعيين التلقائي للسائق
                         driver = Driver.objects.filter(user=self.request.user, is_active=True).first()
                         if driver:
                             container.driver = driver
-                    else:
-                        driver_id = container_data.get('driver')
-                        if driver_id and driver_id != "null":
-                            try:
-                                container.driver = Driver.objects.get(id=driver_id, user=self.request.user)
-                            except Driver.DoesNotExist:
-                                print(f"السائق غير موجود: {driver_id}")
+                            logger.info(f"تم تعيين السائق {driver.name} تلقائياً للحاوية {container.container_number}")
                     
-                    if container_data.get('truck') == "auto":
-                        # تعيين أول شاحنة متاحة
+                    if manual_assignment and truck_value and truck_value != "auto":
+                        # التعيين اليدوي للشاحنة
+                        try:
+                            truck = Truck.objects.get(id=truck_value, user=self.request.user)
+                            container.truck = truck
+                            logger.info(f"تم تعيين الشاحنة {truck.plate_number} يدوياً للحاوية {container.container_number}")
+                        except Truck.DoesNotExist:
+                            logger.warning(f"الشاحنة غير موجودة: {truck_value}")
+                            # في حالة عدم وجود الشاحنة، نعين الشاحنة الأولى المتاحة
+                            truck = Truck.objects.filter(user=self.request.user, is_active=True).first()
+                            if truck:
+                                container.truck = truck
+                                logger.info(f"تم تعيين الشاحنة الأولى المتاحة {truck.plate_number} للحاوية {container.container_number}")
+                    else:
+                        # التعيين التلقائي للشاحنة
                         truck = Truck.objects.filter(user=self.request.user, is_active=True).first()
                         if truck:
                             container.truck = truck
-                    else:
-                        truck_id = container_data.get('truck')
-                        if truck_id and truck_id != "null":
-                            try:
-                                container.truck = Truck.objects.get(id=truck_id, user=self.request.user)
-                            except Truck.DoesNotExist:
-                                print(f"الشاحنة غير موجودة: {truck_id}")
+                            logger.info(f"تم تعيين الشاحنة {truck.plate_number} تلقائياً للحاوية {container.container_number}")
                     
                     # حفظ الحاوية
                     container.save()
@@ -940,10 +992,9 @@ class TripCreateView(CreateView):
                 # ربط الحاويات بالرحلة
                 if container_ids:
                     trip.containers.set(container_ids)
+                    logger.info(f"تم ربط {len(container_ids)} حاوية بالرحلة")
                 else:
                     raise ValueError('لم يتم العثور على أي حاويات صالحة')
-                
-             
                 
                 self.object = trip
                 
@@ -952,21 +1003,22 @@ class TripCreateView(CreateView):
                     return JsonResponse({
                         'success': True,
                         'message': f'تم إنشاء الرحلة بنجاح',
+                        'trip_id': trip.id,
                         'redirect': self.get_success_url()
                     })
                 
                 # إعادة استجابة عادية للطلبات غير AJAX
-                messages.success(self.request, f'تم إنشاء الرحلة {self.object} بنجاح')
+                messages.success(self.request, f'تم إنشاء الرحلة بنجاح')
                 return HttpResponseRedirect(self.get_success_url())
                 
         except Exception as e:
-            print(f"خطأ في إنشاء الرحلة: {str(e)}")
+            logger.error(f"خطأ في إنشاء الرحلة للمستخدم {self.request.user.id}: {str(e)}")
             
             # إعادة استجابة JSON للطلبات AJAX
             if self.request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return JsonResponse({
                     'success': False,
-                    'error': f'حدث خطأ أثناء حفظ الرحلة',
+                    'error': f'حدث خطأ أثناء حفظ الرحلة: {str(e)}',
                     'details': str(e)
                 }, status=400)
             

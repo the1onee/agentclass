@@ -137,6 +137,12 @@
                             الحاويات المرتبطة
                         </h6>
                         <div class="d-flex align-items-center">
+                            <div class="form-check form-switch mr-3">
+                                <input class="form-check-input" type="checkbox" id="enableManualAssignment" checked>
+                                <label class="form-check-label text-white" for="enableManualAssignment">
+                                    تعديل السائقين والشاحنات يدوياً
+                                </label>
+                            </div>
                             <div class="data-counter mr-2">
                                 <span id="containersCount">0</span>
                                 <div class="counter-label">حاوية</div>
@@ -146,6 +152,13 @@
                     <div class="card-body position-relative">
                         <!-- خلفية علمية -->
                         <div class="scientific-bg"></div>
+                        
+                        <!-- تنبيه للمستخدم -->
+                        <div class="alert alert-info mb-3" id="assignmentInfo">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            <span id="assignmentText">سيتم تعيين السائقين والشاحنات يدوياً لكل حاوية.</span>
+                        </div>
+                        
                         <div class="table-responsive">
                             <table class="table table-bordered table-hover" id="containersTable" style="background-color: #f8f9fa;">
                                 <thead class="thead-dark">
@@ -153,14 +166,64 @@
                                         <th style="color: #ffffff; background-color: #343a40;"><i class="fas fa-hashtag ml-1"></i> رقم الحاوية</th>
                                         <th style="color: #ffffff; background-color: #343a40;"><i class="fas fa-box ml-1"></i> النوع</th>
                                         <th style="color: #ffffff; background-color: #343a40;"><i class="fas fa-weight-hanging ml-1"></i> الوزن</th>
-                                        <th style="color: #ffffff; background-color: #343a40;"><i class="fas fa-user-tie ml-1"></i> السائق</th>
-                                        <th style="color: #ffffff; background-color: #343a40;"><i class="fas fa-truck ml-1"></i> الشاحنة</th>
+                                        <th style="color: #ffffff; background-color: #343a40;" id="driverHeader"><i class="fas fa-user-tie ml-1"></i> السائق</th>
+                                        <th style="color: #ffffff; background-color: #343a40;" id="truckHeader"><i class="fas fa-truck ml-1"></i> الشاحنة</th>
                                     </tr>
                                 </thead>
                                 <tbody id="containersTableBody">
                                     <!-- ستتم إضافة صفوف الحاويات هنا -->
                                 </tbody>
                             </table>
+                        </div>
+                        
+                        <!-- أزرار التعيين السريع -->
+                        <div class="mt-3" id="quickAssignButtons" style="display: none;">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="card border-primary">
+                                        <div class="card-header bg-primary text-white py-2">
+                                            <h6 class="mb-0"><i class="fas fa-user-tie mr-2"></i>تعيين سائق لجميع الحاويات</h6>
+                                        </div>
+                                        <div class="card-body py-2">
+                                            <div class="input-group">
+                                                <select class="form-control" id="bulkDriverSelect">
+                                                    <option value="">-- اختر السائق --</option>
+                                                    {% for driver in drivers %}
+                                                    <option value="{{ driver.id }}">{{ driver.name }} - {{ driver.phone_number }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                                <div class="input-group-append">
+                                                    <button class="btn btn-primary" type="button" onclick="assignDriverToAll()">
+                                                        <i class="fas fa-check"></i> تعيين
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card border-success">
+                                        <div class="card-header bg-success text-white py-2">
+                                            <h6 class="mb-0"><i class="fas fa-truck mr-2"></i>تعيين شاحنة لجميع الحاويات</h6>
+                                        </div>
+                                        <div class="card-body py-2">
+                                            <div class="input-group">
+                                                <select class="form-control" id="bulkTruckSelect">
+                                                    <option value="">-- اختر الشاحنة --</option>
+                                                    {% for truck in trucks %}
+                                                    <option value="{{ truck.id }}">{{ truck.plate_number }} - {{ truck.get_governorate_display }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                                <div class="input-group-append">
+                                                    <button class="btn btn-success" type="button" onclick="assignTruckToAll()">
+                                                        <i class="fas fa-check"></i> تعيين
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -447,6 +510,48 @@
         color: #007bff;
         font-weight: bold;
     }
+    
+    /* تنسيقات خاصة بتعديل السائقين والشاحنات */
+    .form-check-input:checked {
+        background-color: #28a745;
+        border-color: #28a745;
+    }
+    
+    .driver-select, .truck-select {
+        font-size: 0.85rem;
+        padding: 0.25rem 0.5rem;
+    }
+    
+    .driver-select:focus, .truck-select:focus {
+        box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+        border-color: #28a745;
+    }
+    
+    #quickAssignButtons .card {
+        transition: transform 0.2s ease;
+    }
+    
+    #quickAssignButtons .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    .badge {
+        font-size: 0.75rem;
+        padding: 0.375rem 0.75rem;
+    }
+    
+    .container-row:hover {
+        background-color: rgba(40, 167, 69, 0.05) !important;
+    }
+    
+    .alert-info {
+        border-left: 4px solid #17a2b8;
+    }
+    
+    .alert-warning {
+        border-left: 4px solid #ffc107;
+    }
 </style>
 {% endblock %}
 
@@ -475,6 +580,23 @@
             });
         }
         
+        // متغيرات عامة
+        let enableManualAssignment = true;
+        let containersData = [];
+
+        // تهيئة الصفحة
+        updateProgress(1);
+        
+        // تهيئة الوضع الافتراضي
+        updateAssignmentMode();
+        
+        // معالجة تغيير خيار التعديل اليدوي
+        $('#enableManualAssignment').change(function() {
+            enableManualAssignment = $(this).is(':checked');
+            updateAssignmentMode();
+            refreshContainersTable();
+        });
+
         // تحديث مؤشر التقدم
         function updateProgress(step) {
             // تحديث شريط التقدم
@@ -507,194 +629,51 @@
             updateProgress(2);
         });
 
-        // حدث اختيار إذن التسليم
+        // معالجة اختيار إذن التسليم
         $('#delivery_order_select').change(function() {
-            const permitId = $(this).val();
-            console.log('🔍 تم اختيار إذن التسليم:', permitId);
-            console.log('🔍 نوع البيانات:', typeof permitId);
-            console.log('🔍 العنصر المحدد:', this);
-            console.log('🔍 جميع خيارات الإذن:', $('#delivery_order_select option').map(function() { return { value: this.value, text: this.text }; }).get());
+            const orderId = $(this).val();
             
-            if (permitId) {
-                console.log('✅ المعرف صالح، بدء طلب AJAX...');
+            if (orderId) {
                 // إظهار شريط التحميل
                 $('.loading-bar').show();
                 
-                // تحديث مؤشر التقدم
-                updateProgress(3);
+                // عرض معلومات الإذن
+                const orderText = $(this).find('option:selected').text();
+                $('#orderTitle').text(`إذن التسليم: ${orderText}`);
+                $('#orderDate').text(`تاريخ الاختيار: ${new Date().toLocaleDateString('ar-SA')}`);
+                $('#selectedOrderInfo').fadeIn(300);
                 
-                // طلب بيانات الإذن والحاويات المرتبطة
-                                                                $.ajax({
-                            url: `/get_permit_containers/${permitId}/`,
-                            type: 'GET',
-                            dataType: 'json',
-                            headers: {
-                                'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val(),
-                                'X-Requested-With': 'XMLHttpRequest'
-                            },
-                    beforeSend: function() {
-                        // إظهار مؤشر التحميل
-                        $('.loading-overlay').css('display', 'flex');
-                    },
+                // جلب الحاويات المرتبطة بالإذن
+                $.ajax({
+                    url: `/get_permit_containers/${orderId}/`,
+                    type: 'GET',
                     success: function(response) {
-                        // التحقق من صحة الاستجابة
-                        if (!response || !response.delivery_order || !response.containers) {
-                            throw new Error('استجابة غير صالحة من الخادم');
-                        }
-
-                        // عرض معلومات الإذن
-                        $('#orderTitle').html(`<i class="fas fa-file-invoice ml-1"></i> إذن التسليم: ${response.delivery_order.number}`);
-                        $('#orderDate').html(`<i class="far fa-calendar-alt ml-1"></i> تاريخ الإصدار: ${response.delivery_order.date}`);
-                        $('#selectedOrderInfo').fadeIn(300);
-
-                        // عرض بيانات الحاويات في الجدول
-                        $('#containersTableBody').empty();
-                        
-                        // تحديث عداد الحاويات
-                        $('#containersCount').text(response.containers.length);
-                        
-                        // إضافة الصفوف بتأثير متتالي
-                        if (response.containers.length > 0) {
-                            response.containers.forEach(function(container, index) {
-                                // التحقق من صحة بيانات الحاوية
-                                if (!container.id || !container.number) {
-                                    console.error('بيانات حاوية غير صالحة:', container);
-                                    return;
-                                }
-
-                                // تأكد من إضافة سمة data-id لكل صف
-                                const row = `
-                                    <tr data-id="${container.id}" class="container-row">
-                                        <td>
-                                            <span class="badge badge-success font-weight-bold p-2" style="color:rgb(17, 0, 255);">${container.number}</span>
-                                            <input type="hidden" name="container_ids[]" value="${container.id}">
-                                        </td>
-                                        <td>${container.type || 'غير محدد'}</td>
-                                        <td>${container.weight || 'N/A'}</td>
-                                        <td>تلقائي</td>
-                                        <td>تلقائي</td>
-                                    </tr>
-                                `;
-                                $('#containersTableBody').append(row);
-                            });
-
-                            // تفعيل زر الحفظ مع تأثير نبض
-                            $('#saveButton').addClass('btn-pulse');
+                        if (response.success) {
+                            containersData = response.containers;
                             
                             // إظهار جدول الحاويات
-                            $('#containersCard').fadeIn(400);
+                            $('#containersCard').fadeIn(300);
                             
-                            // تحديث مؤشر التقدم للخطوة الرابعة
-                            updateProgress(4);
+                            // تحديث عداد الحاويات
+                            $('#containersCount').text(containersData.length);
                             
-                            // إخفاء مؤشر التحميل
-                            $('.loading-overlay').hide();
+                            // تحديث الجدول
+                            refreshContainersTable();
+                            
+                            // تحديث مؤشر التقدم
+                            updateProgress(3);
+                            
+                            // إضافة تأثير نبض لزر الحفظ
+                            $('#saveButton').addClass('btn-pulse');
+                            
+                            console.log(`تم تحميل ${containersData.length} حاوية بنجاح`);
                         } else {
-                            // إذا لم توجد حاويات
-                            $('#containersTableBody').html(`
-                                <tr>
-                                    <td colspan="5" class="text-center py-4">
-                                        <div class="alert alert-warning mb-0">
-                                            <i class="fas fa-exclamation-triangle ml-2"></i>
-                                            لا توجد حاويات مرتبطة بهذا الإذن
-                                        </div>
-                                    </td>
-                                </tr>
-                            `);
-                            $('#containersCard').fadeIn(400);
-                            $('#saveButton').removeClass('btn-pulse');
-                            
-                            // إخفاء مؤشر التحميل
-                            $('.loading-overlay').hide();
+                            showError(response.error || 'حدث خطأ أثناء جلب الحاويات');
                         }
                     },
                     error: function(xhr, status, error) {
-                        // إخفاء شريط التحميل
-                        $('.loading-bar').hide();
-                        $('.loading-overlay').hide();
-                        
-                        // طباعة معلومات مفصلة عن الخطأ
-                        console.log('===== تفاصيل الخطأ =====');
-                        console.log('Status:', status);
-                        console.log('Error:', error);
-                        console.log('Response Status:', xhr.status);
-                        console.log('Response Text:', xhr.responseText);
-                        console.log('Request URL:', `/get_permit_containers/${permitId}/`);
-                        console.log('CSRF Token:', $('input[name="csrfmiddlewaretoken"]').val());
-                        console.log('=========================');
-                        
-                        // تحليل الخطأ
-                        let errorMessage = 'حدث خطأ أثناء جلب بيانات الإذن والحاويات';
-                        let details = '';
-                        let statusCode = xhr.status || 'غير معروف';
-                        
-                        // إضافة معلومات رمز الحالة
-                        let statusText = '';
-                        switch(xhr.status) {
-                            case 404:
-                                statusText = 'المورد غير موجود';
-                                errorMessage = 'الإذن المطلوب غير موجود';
-                                break;
-                            case 500:
-                                statusText = 'خطأ داخلي في الخادم';
-                                break;
-                            case 403:
-                                statusText = 'ممنوع الوصول';
-                                errorMessage = 'ليس لديك صلاحية للوصول لهذا الإذن';
-                                break;
-                            case 0:
-                                statusText = 'عدم الاتصال بالخادم';
-                                errorMessage = 'تعذر الاتصال بالخادم';
-                                break;
-                            default:
-                                statusText = xhr.statusText || 'خطأ غير معروف';
-                        }
-                        
-                        try {
-                            const response = JSON.parse(xhr.responseText);
-                            if (response.error) {
-                                errorMessage = response.error;
-                            }
-                            if (response.details) {
-                                details = '\nالتفاصيل: ' + response.details;
-                            }
-                            if (response.debug_info) {
-                                details += '\nمعلومات التصحيح: ' + response.debug_info;
-                            }
-                        } catch (e) {
-                            console.error('خطأ في تحليل استجابة الخادم:', e);
-                            details = `\nرمز الحالة: ${statusCode} - ${statusText}`;
-                            if (xhr.responseText && xhr.responseText.length < 500) {
-                                details += '\nاستجابة الخادم: ' + xhr.responseText;
-                            }
-                        }
-                        
-                        // عرض رسالة الخطأ
-                        if (typeof Swal !== 'undefined') {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'خطأ في جلب البيانات',
-                                html: `<div style="text-align: right;">
-                                    <p><strong>الخطأ:</strong> ${errorMessage}</p>
-                                    <p><strong>رمز الحالة:</strong> ${statusCode}</p>
-                                    <p><strong>الوصف:</strong> ${statusText}</p>
-                                    ${details ? `<p><strong>التفاصيل:</strong> ${details.replace(/\n/g, '<br>')}</p>` : ''}
-                                </div>`,
-                                confirmButtonText: 'حسناً',
-                                width: '600px'
-                            });
-                        } else {
-                            alert(`${errorMessage}\nرمز الحالة: ${statusCode}\n${statusText}${details}`);
-                        }
-                        
-                        console.error('خطأ في جلب البيانات:', {
-                            status: status,
-                            error: error,
-                            statusCode: xhr.status,
-                            statusText: xhr.statusText,
-                            response: xhr.responseText,
-                            url: `/get_permit_containers/${permitId}/`
-                        });
+                        console.error('خطأ في جلب الحاويات:', error);
+                        showError('حدث خطأ أثناء جلب الحاويات');
                     },
                     complete: function() {
                         // إخفاء شريط التحميل بعد الانتهاء
@@ -706,6 +685,7 @@
                 $('#selectedOrderInfo').fadeOut(300);
                 $('#containersCard').fadeOut(300);
                 $('#saveButton').removeClass('btn-pulse');
+                containersData = [];
                 
                 // إعادة مؤشر التقدم للخطوة الثانية
                 updateProgress(2);
@@ -720,96 +700,76 @@
             const csrfToken = $('input[name="csrfmiddlewaretoken"]').val();
             if (!csrfToken) {
                 console.error('CSRF token غير موجود');
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'خطأ في الأمان',
-                        text: 'حدث خطأ في التحقق من الأمان. يرجى إعادة تحميل الصفحة والمحاولة مرة أخرى.',
-                        confirmButtonText: 'حسناً'
-                    });
-                } else {
-                    alert('حدث خطأ في التحقق من الأمان. يرجى إعادة تحميل الصفحة والمحاولة مرة أخرى.');
-                }
+                showError('حدث خطأ في التحقق من الأمان. يرجى إعادة تحميل الصفحة والمحاولة مرة أخرى.');
                 return false;
             }
 
             // التحقق من اختيار إذن تسليم
-            const deliveryOrderId = $('#delivery_order_select').val();
+            const deliveryOrderId = $('#delivery_order_select').val() || $('select[name="delivery_order"]').val();
             if (!deliveryOrderId) {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'تنبيه',
-                        text: 'يرجى اختيار إذن تسليم أولاً',
-                        confirmButtonText: 'حسناً'
-                    });
-                } else {
-                    alert('يرجى اختيار إذن تسليم أولاً');
-                }
+                showError('يرجى اختيار إذن تسليم أولاً');
                 return false;
             }
             
-            // جمع معرفات الحاويات
+            // جمع معرفات الحاويات مع بيانات السائقين والشاحنات
             const containers = [];
             $('#containersTableBody tr.container-row').each(function() {
                 const containerId = $(this).attr('data-id');
                 if (containerId) {
-                    containers.push({
-                        id: containerId,
-                        // تعيين قيم افتراضية للسائق والشاحنة
-                        driver: "auto",
-                        truck: "auto"
-                    });
+                    let containerData = {
+                        id: containerId
+                    };
+                    
+                    if (enableManualAssignment) {
+                        // جمع بيانات السائق والشاحنة المختارة
+                        const driverSelect = $(this).find('.driver-select');
+                        const truckSelect = $(this).find('.truck-select');
+                        
+                        containerData.driver = driverSelect.length ? driverSelect.val() || "auto" : "auto";
+                        containerData.truck = truckSelect.length ? truckSelect.val() || "auto" : "auto";
+                    } else {
+                        // في حالة التعيين التلقائي
+                        containerData.driver = "auto";
+                        containerData.truck = "auto";
+                    }
+                    
+                    containers.push(containerData);
                 }
             });
             
-            // التحقق من وجود حاويات
-            if (containers.length === 0) {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'تنبيه',
-                        text: 'لا توجد حاويات لإضافتها إلى الرحلة',
-                        confirmButtonText: 'حسناً'
-                    });
-                } else {
-                    alert('لا توجد حاويات لإضافتها إلى الرحلة');
-                }
-                return false;
-            }
-
             // إضافة بيانات الحاويات للنموذج
-            $('#containersData').val(JSON.stringify(containers));
+            if (containers.length > 0) {
+                $('#containersData').val(JSON.stringify(containers));
+            }
             
             // إضافة معرف إذن التسليم كحقل مخفي
             if (!$('#selected_delivery_order').length) {
                 $('<input>').attr({
                     type: 'hidden',
                     id: 'selected_delivery_order',
-                    name: 'delivery_order',
+                    name: 'delivery_order_id',
                     value: deliveryOrderId
                 }).appendTo('#tripForm');
             } else {
                 $('#selected_delivery_order').val(deliveryOrderId);
             }
             
-            // طباعة البيانات للتصحيح
-            console.log('بيانات النموذج:', {
-                delivery_order: deliveryOrderId,
-                containers: containers
-            });
+            // إضافة معلومة حول نوع التعيين
+            $('<input>').attr({
+                type: 'hidden',
+                name: 'manual_assignment',
+                value: enableManualAssignment
+            }).appendTo('#tripForm');
             
-            // إرسال النموذج مباشرة دون تأكيد
+            // إعداد النموذج للإرسال
             const form = $('#tripForm')[0];
             const formData = new FormData(form);
             
-            // إضافة معلومات إضافية للتصحيح
-            formData.append('debug', 'true');
-            formData.append('auto_assign', 'true'); // إشارة للخادم بتعيين السائق والشاحنة تلقائياً
+            // التأكد من إضافة معرف إذن التسليم
+            formData.set('delivery_order_id', deliveryOrderId);
+            formData.set('delivery_order', deliveryOrderId);
             
-            // إضافة معرف إذن التسليم بشكل صريح
-            formData.append('delivery_order_id', deliveryOrderId);
-            
+            // إرسال الطلب
             $.ajax({
                 url: form.action || window.location.href,
                 type: 'POST',
@@ -817,10 +777,10 @@
                 processData: false,
                 contentType: false,
                 headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
                     'X-CSRFToken': csrfToken
                 },
                 beforeSend: function() {
-                    // إظهار مؤشر التحميل
                     $('.loading-overlay').css('display', 'flex');
                     $('#saveButton').prop('disabled', true).html('<i class="fas fa-spinner fa-spin ml-2"></i> جاري الحفظ...');
                 },
@@ -828,76 +788,148 @@
                     console.log('استجابة النجاح:', response);
                     
                     if (response.success) {
-                        // الانتقال إلى صفحة قائمة الرحلات مباشرة
-                        window.location.href = '/trips/';
+                        showSuccess('تم حفظ الرحلة بنجاح!');
+                        setTimeout(function() {
+                            window.location.href = response.redirect || '/trips/';
+                        }, 1500);
                     } else {
-                        // عرض رسالة خطأ مفصلة
-                        let errorMessage = response.error || 'حدث خطأ أثناء حفظ الرحلة';
-                        if (response.details) {
-                            errorMessage += '\nالتفاصيل: ' + response.details;
-                        }
-                        
-                        console.error('خطأ في الاستجابة:', response);
-                        
-                        if (typeof Swal !== 'undefined') {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'خطأ في الحفظ',
-                                text: errorMessage,
-                                confirmButtonText: 'حسناً'
-                            });
-                        } else {
-                            alert(errorMessage);
-                        }
-                        
-                        // إعادة تفعيل زر الحفظ
-                        $('#saveButton').prop('disabled', false).html('<i class="fas fa-save ml-2"></i> حفظ الرحلة');
+                        showError(response.error || 'حدث خطأ أثناء حفظ الرحلة');
                     }
                 },
                 error: function(xhr, status, error) {
-                    // عرض رسالة خطأ مفصلة
-                    let errorMessage = 'حدث خطأ أثناء حفظ الرحلة';
-                    
                     console.error('خطأ في الطلب:', {
                         status: status,
                         error: error,
                         response: xhr.responseText
                     });
                     
+                    let errorMessage = 'حدث خطأ أثناء حفظ الرحلة';
+                    
                     try {
                         const response = JSON.parse(xhr.responseText);
                         if (response.error) {
                             errorMessage = response.error;
                         }
-                        if (response.details) {
-                            errorMessage += '\nالتفاصيل: ' + response.details;
-                        }
                     } catch (e) {
                         console.error('خطأ في تحليل استجابة الخادم:', e);
                     }
                     
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'خطأ في الحفظ',
-                            text: errorMessage,
-                            confirmButtonText: 'حسناً'
-                        });
-                    } else {
-                        alert(errorMessage);
-                    }
-                    
-                    // إعادة تفعيل زر الحفظ
-                    $('#saveButton').prop('disabled', false).html('<i class="fas fa-save ml-2"></i> حفظ الرحلة');
+                    showError(errorMessage);
                 },
                 complete: function() {
-                    // إخفاء مؤشر التحميل
                     $('.loading-overlay').hide();
+                    $('#saveButton').prop('disabled', false).html('<i class="fas fa-save ml-2"></i> حفظ الرحلة');
                 }
             });
             
             return false;
         });
+        
+        // تحديث وضع التعيين
+        function updateAssignmentMode() {
+            if (enableManualAssignment) {
+                $('#assignmentText').text('سيتم تعيين السائقين والشاحنات يدوياً لكل حاوية.');
+                $('#assignmentInfo').removeClass('alert-warning').addClass('alert-info');
+                $('#quickAssignButtons').show();
+                $('#driverHeader, #truckHeader').show();
+            } else {
+                $('#assignmentText').text('سيتم تعيين أول سائق وشاحنة متاحين تلقائياً.');
+                $('#assignmentInfo').removeClass('alert-info').addClass('alert-warning');
+                $('#quickAssignButtons').hide();
+                $('#driverHeader, #truckHeader').hide();
+            }
+        }
+
+        // إضافة صف حاوية مع خيارات السائق والشاحنة
+        function addContainerRow(container) {
+            const driverOptions = createDriverOptions();
+            const truckOptions = createTruckOptions();
+            
+            let driverCell = enableManualAssignment ? 
+                `<td>
+                    <select class="form-control driver-select" data-container-id="${container.id}">
+                        ${driverOptions}
+                    </select>
+                </td>` : 
+                `<td class="text-center text-muted" style="display: ${enableManualAssignment ? 'table-cell' : 'none'};">تلقائي</td>`;
+            
+            let truckCell = enableManualAssignment ? 
+                `<td>
+                    <select class="form-control truck-select" data-container-id="${container.id}">
+                        ${truckOptions}
+                    </select>
+                </td>` : 
+                `<td class="text-center text-muted" style="display: ${enableManualAssignment ? 'table-cell' : 'none'};">تلقائي</td>`;
+            
+            const row = `
+                <tr class="container-row" data-id="${container.id}">
+                    <td><strong>${container.number}</strong></td>
+                    <td><span class="badge badge-info">${container.type_display}</span></td>
+                    <td><span class="badge badge-secondary">${container.weight} طن</span></td>
+                    ${driverCell}
+                    ${truckCell}
+                </tr>
+            `;
+            
+            $('#containersTableBody').append(row);
+        }
+
+        // إنشاء خيارات السائقين
+        function createDriverOptions() {
+            let options = '<option value="">-- اختر السائق --</option>';
+            {% for driver in drivers %}
+            options += `<option value="{{ driver.id }}">{{ driver.name }} - {{ driver.phone_number }}</option>`;
+            {% endfor %}
+            return options;
+        }
+
+        // إنشاء خيارات الشاحنات
+        function createTruckOptions() {
+            let options = '<option value="">-- اختر الشاحنة --</option>';
+            {% for truck in trucks %}
+            options += `<option value="{{ truck.id }}">{{ truck.plate_number }} - {{ truck.get_governorate_display }}</option>`;
+            {% endfor %}
+            return options;
+        }
+
+        // تعيين سائق لجميع الحاويات
+        function assignDriverToAll() {
+            const driverId = $('#bulkDriverSelect').val();
+            if (driverId) {
+                $('.driver-select').val(driverId);
+                showSuccess('تم تعيين السائق لجميع الحاويات');
+            } else {
+                showError('يرجى اختيار سائق أولاً');
+            }
+        }
+
+        // تعيين شاحنة لجميع الحاويات
+        function assignTruckToAll() {
+            const truckId = $('#bulkTruckSelect').val();
+            if (truckId) {
+                $('.truck-select').val(truckId);
+                showSuccess('تم تعيين الشاحنة لجميع الحاويات');
+            } else {
+                showError('يرجى اختيار شاحنة أولاً');
+            }
+        }
+
+        // تحديث جدول الحاويات
+        function refreshContainersTable() {
+            $('#containersTableBody').empty();
+            containersData.forEach(container => {
+                addContainerRow(container);
+            });
+            
+            // إظهار/إخفاء أعمدة السائق والشاحنة
+            if (enableManualAssignment) {
+                $('#driverHeader, #truckHeader').show();
+                $('.container-row td:nth-child(4), .container-row td:nth-child(5)').show();
+            } else {
+                $('#driverHeader, #truckHeader').hide();
+                $('.container-row td:nth-child(4), .container-row td:nth-child(5)').hide();
+            }
+        }
         
         // تنفيذ رسوم متحركة عند تحميل الصفحة
         setTimeout(function() {
@@ -923,6 +955,35 @@
         setInterval(function() {
             $('.data-pulse').toggleClass('active');
         }, 1500);
+
+        // دالة لعرض رسائل الخطأ
+        function showError(message) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ',
+                    text: message,
+                    confirmButtonText: 'حسناً'
+                });
+            } else {
+                alert(message);
+            }
+        }
+        
+        // دالة لعرض رسائل النجاح
+        function showSuccess(message) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'نجح',
+                    text: message,
+                    confirmButtonText: 'حسناً',
+                    timer: 1500
+                });
+            } else {
+                alert(message);
+            }
+        }
     });
 </script>
 {% endblock %}

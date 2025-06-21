@@ -172,56 +172,104 @@ class TripForm(forms.ModelForm):
         model = Trip
         fields = ['delivery_order', 'start_time']
         widgets = {
-            'start_time': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
+            'start_time': forms.DateTimeInput(attrs={
+                'type': 'datetime-local',
+                'class': 'form-control'
+            }),
+            'delivery_order': forms.Select(attrs={
+                'class': 'form-control',
+                'dir': 'rtl'
+            }),
         }
 
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
-        if self.user:
-            self.fields['delivery_order'].queryset = DeliveryOrder.objects.filter(user=self.user)
-            
-            if self.instance and self.instance.pk:
-                current_delivery_order = self.instance.delivery_order
-                self.fields['delivery_order'].queryset = self.fields['delivery_order'].queryset | DeliveryOrder.objects.filter(pk=current_delivery_order.pk)
-
-    def save(self, commit=True):
-        trip = super().save(commit=False)
-        if not trip.pk:  # إذا كانت رحلة جديدة
-            trip.user = self.user
         
-        # حفظ الرحلة بدون الحاويات أولاً
-        trip.save()
-
-        # إذا كان هناك إذن تسليم، نضيف الحاويات بعد حفظ الرحلة
-        if trip.delivery_order:
-            containers = Container.objects.filter(delivery_order=trip.delivery_order)
-            # نستخدم clear() ثم add() بدلاً من set()
-            trip.containers.clear()
-            trip.containers.add(*containers)
-
-        return trip
+        # إعداد التسميات باللغة العربية
+        self.fields['delivery_order'].label = 'إذن التسليم'
+        self.fields['start_time'].label = 'تاريخ ووقت البداية'
+        
+        if self.user:
+            # فلترة أذونات التسليم حسب المستخدم
+            self.fields['delivery_order'].queryset = DeliveryOrder.objects.filter(
+                user=self.user
+            ).exclude(
+                trips__status__in=['pending', 'active']
+            ).order_by('-issue_date')
+            
+            # إضافة خيار فارغ
+            self.fields['delivery_order'].empty_label = "-- اختر إذن التسليم --"
+            
+            # إذا كان التعديل، نشمل إذن التسليم الحالي
+            if self.instance and self.instance.pk and self.instance.delivery_order:
+                current_delivery_order = self.instance.delivery_order
+                # التأكد من أن إذن التسليم الحالي موجود في الخيارات
+                all_orders = list(self.fields['delivery_order'].queryset)
+                if current_delivery_order not in all_orders:
+                    all_orders.append(current_delivery_order)
+                    self.fields['delivery_order'].queryset = DeliveryOrder.objects.filter(
+                        id__in=[order.id for order in all_orders]
+                    ).order_by('-issue_date')
 
     def clean_delivery_order(self):
+        """التحقق من صحة إذن التسليم"""
         delivery_order = self.cleaned_data.get('delivery_order')
         
-        # التحقق من عدم وجود رحلة نشطة أخرى لنفس الإذن
-        if delivery_order:
-            active_trips = Trip.objects.filter(
+        if not delivery_order:
+            raise forms.ValidationError('يجب اختيار إذن تسليم')
+        
+        # التحقق من أن إذن التسليم ينتمي للمستخدم الحالي
+        if self.user and delivery_order.user != self.user:
+            raise forms.ValidationError('إذن التسليم غير صالح أو غير مصرح لك بالوصول إليه')
+        
+        # التحقق من عدم وجود رحلة نشطة لنفس إذن التسليم (في حالة الإضافة)
+        if not self.instance.pk:  # رحلة جديدة
+            existing_trips = Trip.objects.filter(
                 delivery_order=delivery_order,
                 status__in=['pending', 'active']
             )
-            
-            # إذا كان هذا تعديل، نستثني الرحلة الحالية من الفحص
-            if self.instance and self.instance.pk:
-                active_trips = active_trips.exclude(pk=self.instance.pk)
-            
-            if active_trips.exists():
+            if existing_trips.exists():
                 raise forms.ValidationError(
-                    'يوجد رحلة نشطة بالفعل لهذا الإذن. لا يمكن إنشاء رحلة أخرى حتى تكتمل الرحلة الحالية.'
+                    f'يوجد بالفعل رحلة نشطة أو قيد الانتظار لإذن التسليم {delivery_order.order_number}'
                 )
         
         return delivery_order
+    
+    def clean_start_time(self):
+        """التحقق من صحة تاريخ البداية"""
+        start_time = self.cleaned_data.get('start_time')
+        
+        if not start_time:
+            # إذا لم يتم تحديد وقت، نستخدم الوقت الحالي
+            start_time = timezone.now()
+        
+        # يمكن إضافة المزيد من التحققات هنا حسب الحاجة
+        # مثل التأكد من أن الوقت ليس في الماضي البعيد
+        
+        return start_time
+
+    def save(self, commit=True):
+        trip = super().save(commit=False)
+        
+        # تعيين المستخدم إذا لم يكن موجوداً
+        if not trip.pk and self.user:  # رحلة جديدة
+            trip.user = self.user
+        
+        # تعيين الحالة الافتراضية
+        if not trip.pk:
+            trip.status = 'pending'
+        
+        if commit:
+            trip.save()
+            
+            # إضافة حاويات إذن التسليم إلى الرحلة إذا كانت رحلة جديدة
+            if not self.instance.pk and trip.delivery_order:
+                containers = Container.objects.filter(delivery_order=trip.delivery_order)
+                if containers.exists():
+                    trip.containers.set(containers)
+        
+        return trip
 
 
 # ===== نماذج إدارة الشركات =====

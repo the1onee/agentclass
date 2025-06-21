@@ -31,7 +31,8 @@ def login_view(request):
 
 def logout_view(request):
     logout(request)
-    return redirect('home')
+    messages.success(request, 'تم تسجيل الخروج بنجاح')
+    return redirect('port:home')
 
 @login_required
 def home_view(request):

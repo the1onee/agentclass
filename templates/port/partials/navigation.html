@@ -64,7 +64,7 @@
             <a class="nav-link fw-semibold" href="/users/account/">
                 <i class="fas fa-user-circle me-1"></i>{{ user.first_name }}
             </a>
-            <a class="nav-link fw-semibold text-danger" href="/users/logout/">
+            <a class="nav-link fw-semibold text-danger" href="{% url 'users:logout' %}">
                 <i class="fas fa-sign-out-alt me-1"></i>خروج
             </a>
             {% endif %}
