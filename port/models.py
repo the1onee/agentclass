@@ -151,6 +151,19 @@ class DeliveryOrder(models.Model):
         blank=True,
         verbose_name="ملاحظات"
     )
+    container_size = models.CharField(
+        max_length=4,
+        choices=[
+            ('20DC', '20 قدم عادي'),
+            ('40DC', '40 قدم عادي'),
+            ('20RF', '20 قدم مبرد'),
+            ('40RF', '40 قدم مبرد'),
+            ('TANK', 'صهريج'),
+        ],
+        default='40DC',
+        verbose_name="حجم الحاويات",
+        help_text="حجم الحاويات الافتراضي لهذا الإذن"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

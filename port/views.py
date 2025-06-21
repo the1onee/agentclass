@@ -226,36 +226,13 @@ def add_item(request, item_type):
             form = DeliveryOrderForm(request.POST)
             if form.is_valid():
                 try:
-                    # حفظ الإذن أولاً
+                    # حفظ الإذن مع تعيين المستخدم
                     order = form.save(commit=False)
                     order.user = request.user
-                    order.save()
-
-                    # إضافة الحاويات
-                    bulk_containers = form.cleaned_data.get('bulk_containers', '')
-                    if bulk_containers:
-                        container_numbers = [num.strip() for num in bulk_containers.split('\n') if num.strip()]
-                        
-                        # إنشاء الحاويات
-                        containers_to_create = [
-                            Container(
-                                user=request.user,  # استخدام request.user مباشرة
-                                container_number=num,
-                                container_type='20DC',
-                                delivery_order=order
-                            )
-                            for num in container_numbers
-                        ]
-                        
-                        # إنشاء الحاويات بشكل جماعي
-                        if containers_to_create:
-                            Container.objects.bulk_create(containers_to_create)
-                            messages.success(
-                                request, 
-                                f'تم إنشاء إذن التسليم بنجاح وإضافة {len(containers_to_create)} حاوية'
-                            )
-                        else:
-                            messages.success(request, 'تم إنشاء إذن التسليم بنجاح')
+                    # استدعاء save() مع commit=True لتفعيل منطق إضافة الحاويات
+                    form.instance = order  # تحديث instance في النموذج
+                    form.save()  # هذا سيستدعي منطق save() في النموذج مع الحاويات
+                    messages.success(request, 'تم إنشاء إذن التسليم بنجاح')
                     
                     return redirect('port:delivery_orders')
                 
@@ -760,20 +737,23 @@ def get_permit_containers(request, permit_id):
             if not containers.exists():
                 print("🔧 إنشاء حاويات تلقائياً...")
                 # إنشاء حاويات افتراضية للإذن
-                container_types = ['20DC', '40DC']
+                # استخدام الحجم المحدد في إذن التسليم
+                container_size = delivery_order.container_size
                 created_containers = []
-                for i, container_type in enumerate(container_types, 1):
+                
+                # إنشاء حاويتين بنفس الحجم المختار
+                for i in range(1, 3):  # إنشاء حاويتين
                     container_number = f"{delivery_order.order_number}-{i:02d}"
                     container = Container.objects.create(
                         user=request.user,
                         container_number=container_number,
-                        container_type=container_type,
+                        container_type=container_size,  # استخدام الحجم المحدد
                         delivery_order=delivery_order,
                         status=delivery_order.status,
-                        weight=20 if container_type == '20DC' else 40
+                        weight=40  # تعيين الوزن إلى 40 لجميع أنواع الحاويات
                     )
                     created_containers.append(container)
-                    print(f"✨ تم إنشاء الحاوية: {container.container_number}")
+                    print(f"✨ تم إنشاء الحاوية: {container.container_number} بحجم: {container_size}")
                 
                 # إعادة جلب الحاويات بعد الإنشاء
                 containers = delivery_order.containers.all()

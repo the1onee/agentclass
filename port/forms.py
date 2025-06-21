@@ -85,16 +85,19 @@ class DeliveryOrderForm(forms.ModelForm):
         required=False,
         label='إضافة حاويات متعددة'
     )
+    
+
 
     class Meta:
         model = DeliveryOrder
-        fields = ['order_number', 'issue_date', 'expiry_date', 'notes', 'status']
+        fields = ['order_number', 'issue_date', 'expiry_date', 'notes', 'status', 'container_size']
         widgets = {
             'order_number': forms.TextInput(attrs={'class': 'form-control', 'dir': 'ltr'}),
             'issue_date': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
             'expiry_date': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'status': forms.Select(attrs={'class': 'form-control'}),
+            'container_size': forms.Select(attrs={'class': 'form-control', 'dir': 'rtl'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -103,6 +106,11 @@ class DeliveryOrderForm(forms.ModelForm):
         if 'instance' in kwargs and kwargs['instance']:
             # This is an edit form, we don't need bulk_containers for editing
             self.fields.pop('bulk_containers', None)
+        
+        # إعداد تسميات الحقول باللغة العربية
+        self.fields['container_size'].label = 'حجم الحاويات'
+        if hasattr(self.fields['container_size'], 'help_text'):
+            self.fields['container_size'].help_text = 'سيتم تطبيق هذا الحجم على جميع الحاويات المرتبطة بهذا الإذن'
 
     def clean_bulk_containers(self):
         bulk_containers = self.cleaned_data.get('bulk_containers', '')
@@ -129,8 +137,10 @@ class DeliveryOrderForm(forms.ModelForm):
         if commit:
             order.save()
             
-            # إضافة الحاويات
+            # إضافة الحاويات الجديدة (إذا وُجدت)
             bulk_containers = self.cleaned_data.get('bulk_containers', '')
+            container_size = order.container_size  # استخدام الحجم المحفوظ في إذن التسليم
+            
             if bulk_containers:
                 container_numbers = [num.strip() for num in bulk_containers.split('\n') if num.strip()]
                 
@@ -140,13 +150,22 @@ class DeliveryOrderForm(forms.ModelForm):
                         container_number=num,
                         defaults={
                             'user': order.user,
-                            'container_type': '40DC',
+                            'container_type': container_size,  # استخدام الحجم المحفوظ
                             'delivery_order': order,
                             'status': order.status, # تحديث حالة الحاويات المرتبطة
                             'weight': 40  # تعيين الوزن تلقائيًا إلى 40
                         }
                     )
-            Container.objects.filter(delivery_order=order).update(status=order.status, weight=40)  # تحديث الوزن أيضًا
+            
+            # تحديث جميع حاويات الإذن بالحجم والحالة الجديدة (سواء كانت موجودة من قبل أم جديدة)
+            Container.objects.filter(delivery_order=order).update(
+                status=order.status, 
+                weight=40,
+                container_type=container_size  # تحديث الحجم لجميع الحاويات
+            )
+            
+            # طباعة رسالة للتأكد من التحديث (للتصحيح)
+            print(f"✅ تم تحديث جميع حاويات إذن التسليم {order.order_number} إلى الحجم: {container_size}")
          
         
         return order

@@ -92,7 +92,7 @@ class Command(BaseCommand):
                         'container_type': container_type,
                         'delivery_order': order,
                         'status': order.status,
-                        'weight': 20 if container_type.startswith('20') else 40,
+                        'weight': 40,  # تعيين الوزن إلى 40 لجميع أنواع الحاويات
                         'content_description': f'بضائع تجريبية للحاوية {container_number}'
                     }
                 )
